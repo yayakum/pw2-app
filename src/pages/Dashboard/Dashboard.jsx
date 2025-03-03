@@ -1,10 +1,8 @@
 import React from 'react';
 import { Search, Bell, MessageSquare, Users, Home, Bookmark, Settings, ChevronDown, MoreHorizontal, Heart, MessageCircle, Share2, User } from 'lucide-react';
+import Header from '../../components/Header/Header';
 
 const Dashboard = () => {
-//   const [notifications, setNotifications] = useState(3);
-//   const [messages, setMessages] = useState(2);
-  
   // Datos simulados para las publicaciones
   const posts = [
     {
@@ -58,77 +56,14 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-gray-200">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-gray-900 bg-opacity-90 backdrop-blur-sm border-b border-purple-900 shadow-lg">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            {/* Logo */}
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500">
-                CosmicPortal
-              </h1>
-            </div>
-            
-            {/* Barra de búsqueda */}
-            <div className="hidden md:flex relative mx-4 flex-grow max-w-md">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={18} className="text-gray-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Buscar en el cosmos..."
-                className="w-full pl-10 pr-4 py-2 rounded-full bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-              />
-            </div>
-            
-            {/* Iconos de navegación */}
-            <div className="flex items-center space-x-4">
-              <button className="p-2 rounded-full hover:bg-gray-800 relative">
-                <Bell size={24} />
-                {/* {notifications > 0 && (
-                  <span className="absolute top-0 right-0 inline-block w-5 h-5 text-xs text-white bg-red-500 rounded-full flex items-center justify-center">
-                    {notifications}
-                  </span>
-                )} */}
-              </button>
-              
-              <button className="p-2 rounded-full hover:bg-gray-800 relative">
-                <MessageSquare size={24} />
-                {/* {messages > 0 && (
-                  <span className="absolute top-0 right-0 inline-block w-5 h-5 text-xs text-white bg-red-500 rounded-full flex items-center justify-center">
-                    {messages}
-                  </span>
-                )} */}
-              </button>
-              
-              <div className="relative group">
-                <button className="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-800">
-                  <img
-                    src="/api/placeholder/32/32"
-                    alt="Profile"
-                    className="w-8 h-8 rounded-full border-2 border-purple-500"
-                  />
-                  <ChevronDown size={16} className="text-gray-400" />
-                </button>
-                <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg hidden group-hover:block border border-purple-900">
-                  <div className="py-1">
-                    <a href="#" className="block px-4 py-2 hover:bg-gray-700">Ver perfil</a>
-                    <a href="#" className="block px-4 py-2 hover:bg-gray-700">Configuración</a>
-                    <a href="#" className="block px-4 py-2 hover:bg-gray-700">Cerrar sesión</a>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-gray-200 bg-fixed">
+      <Header className="sticky top-0 z-10"></Header>
 
       {/* Contenido principal */}
-      <main className="container mx-auto px-4 py-6 flex flex-col md:flex-row">
+      <main className="container mx-auto px-4 py-6 flex flex-col md:flex-row relative">
         {/* Sidebar izquierdo */}
         <aside className="w-full md:w-1/4 md:pr-4 mb-6 md:mb-0 hidden md:block">
-          <div className="p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md">
+          <div className="p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md sticky top-24">
             <nav className="space-y-1">
               <a href="#" className="flex items-center space-x-3 p-2 rounded-md bg-gradient-to-r from-purple-900 to-blue-900 bg-opacity-70 text-white">
                 <Home size={20} />
@@ -290,44 +225,46 @@ const Dashboard = () => {
         
         {/* Sidebar derecho */}
         <aside className="w-full md:w-1/4 md:pl-4 hidden md:block">
-          <div className="p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md mb-6">
-            <h3 className="font-medium text-lg mb-4">Eventos Cósmicos</h3>
-            <div className="space-y-4">
-              <div className="p-3 rounded-md bg-gray-700 hover:bg-gray-600 transition cursor-pointer">
-                <h4 className="font-medium">Lluvia de meteoros Perseus</h4>
-                <p className="text-sm text-gray-300 mt-1">Este fin de semana - No te lo pierdas</p>
-              </div>
-              <div className="p-3 rounded-md bg-gray-700 hover:bg-gray-600 transition cursor-pointer">
-                <h4 className="font-medium">Encuentro espacial virtual</h4>
-                <p className="text-sm text-gray-300 mt-1">Mañana a las 19:00 - 532 asistentes</p>
+          <div className="sticky top-24">
+            <div className="p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md mb-6">
+              <h3 className="font-medium text-lg mb-4">Eventos Cósmicos</h3>
+              <div className="space-y-4">
+                <div className="p-3 rounded-md bg-gray-700 hover:bg-gray-600 transition cursor-pointer">
+                  <h4 className="font-medium">Lluvia de meteoros Perseus</h4>
+                  <p className="text-sm text-gray-300 mt-1">Este fin de semana - No te lo pierdas</p>
+                </div>
+                <div className="p-3 rounded-md bg-gray-700 hover:bg-gray-600 transition cursor-pointer">
+                  <h4 className="font-medium">Encuentro espacial virtual</h4>
+                  <p className="text-sm text-gray-300 mt-1">Mañana a las 19:00 - 532 asistentes</p>
+                </div>
               </div>
             </div>
-          </div>
-          
-          <div className="p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md">
-            <h3 className="font-medium text-lg mb-4">Exploradores Sugeridos</h3>
-            <div className="space-y-4">
-              {friendSuggestions.map(friend => (
-                <div key={friend.id} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <img
-                      src={friend.avatar}
-                      alt={`${friend.name}'s avatar`}
-                      className="w-10 h-10 rounded-full"
-                    />
-                    <div>
-                      <h4 className="font-medium text-sm">{friend.name}</h4>
-                      <p className="text-xs text-gray-400">{friend.mutualFriends} amigos en común</p>
+            
+            <div className="p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md">
+              <h3 className="font-medium text-lg mb-4">Exploradores Sugeridos</h3>
+              <div className="space-y-4">
+                {friendSuggestions.map(friend => (
+                  <div key={friend.id} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <img
+                        src={friend.avatar}
+                        alt={`${friend.name}'s avatar`}
+                        className="w-10 h-10 rounded-full"
+                      />
+                      <div>
+                        <h4 className="font-medium text-sm">{friend.name}</h4>
+                        <p className="text-xs text-gray-400">{friend.mutualFriends} amigos en común</p>
+                      </div>
                     </div>
+                    <button className="px-3 py-1 text-xs rounded-full bg-purple-600 hover:bg-purple-700 text-white">
+                      Agregar
+                    </button>
                   </div>
-                  <button className="px-3 py-1 text-xs rounded-full bg-purple-600 hover:bg-purple-700 text-white">
-                    Agregar
-                  </button>
-                </div>
-              ))}
-              <button className="w-full mt-2 text-sm text-purple-400 hover:text-purple-300">
-                Ver más
-              </button>
+                ))}
+                <button className="w-full mt-2 text-sm text-purple-400 hover:text-purple-300">
+                  Ver más
+                </button>
+              </div>
             </div>
           </div>
         </aside>
