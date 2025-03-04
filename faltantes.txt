@@ -1,0 +1,5 @@
+1- Ventana de chat 🔴
+2- Centro de notificaciones 🔴
+3- Ventana de modificación del usuario 🔴
+4- Validaciones 🔴
+5- Modal comentarios 🔴
