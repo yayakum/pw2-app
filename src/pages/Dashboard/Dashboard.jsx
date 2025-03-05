@@ -5,7 +5,6 @@ import CreatePost from '../../components/CreatePost/CreatePost';
 import PostsList from '../../components/PostList/PostList';
 
 const Dashboard = () => {
-  // Datos simulados para las publicaciones
   const posts = [
     {
       id: 1,

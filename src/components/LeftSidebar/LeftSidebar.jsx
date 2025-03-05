@@ -1,7 +1,12 @@
+/* eslint-disable no-unused-vars */
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Home, User, Users, MessageCircle, Bookmark, Settings } from 'lucide-react';
 
 const LeftSidebar = () => {
+  // Hook para obtener la ruta actual
+  const location = useLocation();
+
   // Datos simulados para usuarios activos
   const activeUsers = [
     { id: 1, name: 'Nebula Walker', avatar: '/api/placeholder/40/40' },
@@ -9,34 +14,34 @@ const LeftSidebar = () => {
     { id: 3, name: 'Luna Explorer', avatar: '/api/placeholder/40/40' }
   ];
 
+  // Secciones del menú con sus rutas correspondientes
+  const menuSections = [
+    { icon: Home, name: 'Inicio', path: '/Dashboard' },
+    { icon: User, name: 'Perfil', path: '/Profile' },
+    // { icon: Users, name: 'Amigos', path: '' }, // Ajusta esta ruta según tu estructura
+    { icon: MessageCircle, name: 'Mensajes', path: '' }, // Ajusta esta ruta según tu estructura
+    { icon: Bookmark, name: 'Favoritos', path: '' }, // Ajusta esta ruta según tu estructura
+    // { icon: Settings, name: 'Configuración', path: '' } // Ajusta esta ruta según tu estructura
+  ];
+
   return (
     <aside className="w-full md:w-1/4 md:pr-4 mb-6 md:mb-0 hidden md:block">
       <div className="p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md sticky top-24">
         <nav className="space-y-1">
-          <a href="#" className="flex items-center space-x-3 p-2 rounded-md bg-gradient-to-r from-purple-900 to-blue-900 bg-opacity-70 text-white">
-            <Home size={20} />
-            <span>Inicio</span>
-          </a>
-          <a href="#" className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-700 transition">
-            <User size={20} />
-            <span>Perfil</span>
-          </a>
-          <a href="#" className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-700 transition">
-            <Users size={20} />
-            <span>Amigos</span>
-          </a>
-          <a href="#" className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-700 transition">
-            <MessageCircle size={20} />
-            <span>Mensajes</span>
-          </a>
-          <a href="#" className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-700 transition">
-            <Bookmark size={20} />
-            <span>Guardados</span>
-          </a>
-          <a href="#" className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-700 transition">
-            <Settings size={20} />
-            <span>Configuración</span>
-          </a>
+          {menuSections.map(({ icon: Icon, name, path }) => (
+            <Link 
+              key={name}
+              to={path}
+              className={` w-full flex items-center space-x-3 p-2 rounded-md transition ${
+                location.pathname === path
+                  ? 'bg-gradient-to-r from-purple-900 to-blue-900 bg-opacity-70 text-white'
+                  : 'hover:bg-gray-700 text-gray-300'
+              }`}
+            >
+              <Icon size={20} />
+              <span>{name}</span>
+            </Link>
+          ))}
         </nav>
         
         <div className="mt-6 pt-6 border-t border-gray-700">

@@ -1,13 +1,21 @@
 import React, { useState } from 'react';
 import Header from '../../components/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar/LeftSidebar';
-import { Camera, Edit, Users, Image, MessageSquare, Info, UserRoundPlus,UserRoundCheck  } from 'lucide-react';
+import { Camera, Edit, Users, Image, MessageSquare, Info, UserRoundPlus,UserRoundCheck,Bookmark  } from 'lucide-react';
 import CreatePost from '../../components/CreatePost/CreatePost';
 import PostsList from '../../components/PostList/PostList';
+import UserEdit from '../../components/UserEdit/UserEdit';
+import Post from '../../components/Postss/Post';
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('posts');
-  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const initialUserData = {
+    name: 'Explorador Cósmico',
+    email: 'cosmonaut@galaxia.com',
+    profileImage: null,
+    birthDate: '1990-01-01'
+  };
   // Datos de ejemplo (en una aplicación real vendrían de una API o Redux)
   const userData = {
     name: "Nombre del Usuario",
@@ -31,9 +39,11 @@ const Profile = () => {
       },
       time: 'hace 2 horas',
       content: 'Acabo de descubrir esta increíble nebulosa en mi viaje espacial. ¡Las vistas son impresionantes! ¿Alguien más ha explorado esta región?',
-      image: '/api/placeholder/600/400',
+      image: '/neji.jfif',
       likes: 245,
-      comments: 58,
+      comments: [
+        
+      ],
       shares: 12
     },
     {
@@ -114,7 +124,7 @@ const Profile = () => {
             </div>
           </div>
         );
-      case 'photos':
+      case 'multimedia':
         return (
           <div className="p-4 bg-gray-800 rounded-lg shadow-md">
             <h3 className="text-lg font-medium mb-4">Fotos</h3>
@@ -136,6 +146,10 @@ const Profile = () => {
             </div>
           </div>
         );
+      case 'favorites':
+        return ( 
+          <PostsList posts={posts} />
+        );
       default:
         return null;
     }
@@ -145,6 +159,13 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-gray-200 bg-fixed">
       <Header className="sticky top-0 z-10" />
+
+       {/* User Edit Modal */}
+       <UserEdit
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)}
+        initialUser={initialUserData}
+      />
       
       <main className="container mx-auto px-4 py-6 flex flex-col md:flex-row relative">
         {/* Sidebar izquierdo */}
@@ -170,9 +191,11 @@ const Profile = () => {
                 <p className="text-gray-400">{userData.bio}</p>
               </div>
               <button
+              onClick={() => setIsModalOpen(true)}
                 className="-mb-8 mt-4 sm:mt-0 sm:ml-auto px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-md text-white flex items-center transition-colors cursor-pointer"
               >
                 <Edit size={16}/>
+                
               </button>
               {/* <button 
                 
@@ -207,11 +230,19 @@ const Profile = () => {
               Amigos
             </button>
             <button 
-              className={`px-4 py-2 rounded-lg text-white flex items-center transition-colors ${activeTab === 'photos' ? 'bg-gradient-to-r from-blue-900 via-purple-900 to-blue-900 bg-opacity-100' : 'bg-gray-800 hover:bg-gray-700'} cursor-pointer`}
-              onClick={() => setActiveTab('photos')}
+              className={`px-4 py-2 rounded-lg text-white flex items-center transition-colors ${activeTab === 'multimedia' ? 'bg-gradient-to-r from-blue-900 via-purple-900 to-blue-900 bg-opacity-100' : 'bg-gray-800 hover:bg-gray-700'} cursor-pointer`}
+              onClick={() => setActiveTab('multimedia')}
             >
               <Image size={16} className="mr-2" />
-              Fotos
+              Multimedia
+            </button>
+
+            <button 
+              className={`px-4 py-2 rounded-lg text-white flex items-center transition-colors ${activeTab === 'favorites' ? 'bg-gradient-to-r from-blue-900 via-purple-900 to-blue-900 bg-opacity-100' : 'bg-gray-800 hover:bg-gray-700'} cursor-pointer`}
+              onClick={() => setActiveTab('favorites')}
+            >
+              <Bookmark size={16} className="mr-2" />
+              Favoritos
             </button>
           </div>
 
