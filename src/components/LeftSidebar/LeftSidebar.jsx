@@ -19,7 +19,7 @@ const LeftSidebar = () => {
     { icon: Home, name: 'Inicio', path: '/Dashboard' },
     { icon: User, name: 'Perfil', path: '/Profile' },
     // { icon: Users, name: 'Amigos', path: '' }, // Ajusta esta ruta según tu estructura
-    { icon: MessageCircle, name: 'Mensajes', path: '' }, // Ajusta esta ruta según tu estructura
+    { icon: MessageCircle, name: 'Mensajes', path: '/Chats' }, // Ajusta esta ruta según tu estructura
     { icon: Bookmark, name: 'Favoritos', path: '' }, // Ajusta esta ruta según tu estructura
     // { icon: Settings, name: 'Configuración', path: '' } // Ajusta esta ruta según tu estructura
   ];
