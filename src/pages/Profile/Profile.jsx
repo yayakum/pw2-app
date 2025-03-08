@@ -5,7 +5,6 @@ import { Camera, Edit, Users, Image, MessageSquare, Info, UserRoundPlus,UserRoun
 import CreatePost from '../../components/CreatePost/CreatePost';
 import PostsList from '../../components/PostList/PostList';
 import UserEdit from '../../components/UserEdit/UserEdit';
-import Post from '../../components/Postss/Post';
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('posts');

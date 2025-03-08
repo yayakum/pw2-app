@@ -1,6 +1,4 @@
-
 import React, { useState } from "react";
-// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Bell, 
@@ -9,7 +7,10 @@ import {
   Heart, 
   UserPlus, 
   Star, 
-  AlertCircle 
+  AlertCircle,
+  MoreVertical,
+  Check,
+  CheckCheck
 } from "lucide-react";
 
 // Mapa de iconos para diferentes tipos de notificaciones
@@ -23,11 +24,11 @@ const notificationIcons = {
 };
 
 const notificationsData = [
-  { id: 1, type: "message", text: "Nuevo mensaje recibido" },
-  { id: 2, type: "comment", text: "Alguien comentó tu publicación" },
-  { id: 3, type: "follow", text: "Nuevo seguidor" },
-  { id: 4, type: "like", text: "A alguien le gustó tu post" },
-  { id: 5, type: "favorite", text: "Alguien agregó tu publicación a favoritos" },
+  { id: 1, type: "message", text: "Nuevo mensaje recibido", read: false },
+  { id: 2, type: "comment", text: "Alguien comentó tu publicación", read: false },
+  { id: 3, type: "follow", text: "Nuevo seguidor", read: false },
+  { id: 4, type: "like", text: "A alguien le gustó tu post", read: false },
+  { id: 5, type: "favorite", text: "Alguien agregó tu publicación a favoritos", read: false },
 ];
 
 // Mapa de colores para diferentes tipos de notificaciones
@@ -43,14 +44,37 @@ const notificationColors = {
 const NotificationCenter = () => {
   const [notifications, setNotifications] = useState(notificationsData);
   const [isOpen, setIsOpen] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   const removeNotification = (id) => {
     setNotifications(notifications.filter((notification) => notification.id !== id));
+    setOpenMenuId(null);
   };
 
   const clearNotifications = () => {
     setNotifications([]);
   };
+
+  const markAsRead = (id) => {
+    setNotifications(
+      notifications.map((notification) =>
+        notification.id === id ? { ...notification, read: true } : notification
+      )
+    );
+    setOpenMenuId(null);
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(
+      notifications.map((notification) => ({ ...notification, read: true }))
+    );
+  };
+
+  const toggleMenu = (id) => {
+    setOpenMenuId(openMenuId === id ? null : id);
+  };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <div className="relative inline-block">
@@ -59,9 +83,9 @@ const NotificationCenter = () => {
         className="p-2 rounded-full hover:bg-gray-700 relative cursor-pointer hover:scale-105 duration-300 transition-all"
       >
         <Bell size={24} className="text-white" />
-        {notifications.length > 0 && (
+        {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 w-5 h-5 text-xs text-white bg-red-500 rounded-full flex items-center justify-center cursor-pointer">
-            {notifications.length}
+            {unreadCount}
           </span>
         )}
       </button>
@@ -71,17 +95,26 @@ const NotificationCenter = () => {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          className="absolute right-0 mt-2 w-96 bg-gray-800 text-white rounded-xl shadow-2xl border-2 border-gray-700 overflow-hidden"
+          className="absolute right-0 mt-2 w-96 bg-gray-800 text-white rounded-xl shadow-2xl border-2 border-gray-700 overflow-hidden z-50"
         >
           <div className="flex justify-between items-center p-4 border-b border-gray-700 bg-gray-900">
             <span className="font-bold text-lg">Notificaciones</span>
-            <button 
-              onClick={clearNotifications} 
-              className="text-red-400 hover:text-red-600 transition-colors flex items-center space-x-1 cursor-pointer"
-            >
-              <Trash2 size={16} />
-              <span>Borrar todas</span>
-            </button>
+            <div className="flex gap-3">
+              <button 
+                onClick={markAllAsRead} 
+                className="text-blue-400 hover:text-blue-600 transition-colors flex items-center space-x-1 cursor-pointer"
+              >
+                <CheckCheck size={16} />
+                <span>Marcar</span>
+              </button>
+              <button 
+                onClick={clearNotifications} 
+                className="text-red-400 hover:text-red-600 transition-colors flex items-center space-x-1 cursor-pointer"
+              >
+                <Trash2 size={16} />
+                <span>Borrar</span>
+              </button>
+            </div>
           </div>
           
           <div className="max-h-64 overflow-y-auto">
@@ -97,18 +130,46 @@ const NotificationCenter = () => {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
-                      className="flex justify-between items-center p-4 border-b border-gray-700 hover:bg-gray-700 transition-colors cursor-pointer"
+                      className={`flex justify-between items-center p-4 border-b border-gray-700 hover:bg-gray-700 transition-colors ${notification.read ? 'bg-gray-750 opacity-70' : ''}`}
                     >
                       <div className="flex items-center space-x-3">
                         <NotificationIcon size={24} className={`${iconColor}`} />
-                        <span className="text-sm">{notification.text}</span>
+                        <span className={`text-sm ${notification.read ? 'text-gray-400' : 'text-white'}`}>
+                          {notification.text}
+                          {notification.read && (
+                            <span className="ml-2 text-xs text-gray-500">(leída)</span>
+                          )}
+                        </span>
                       </div>
-                      <button 
-                        onClick={() => removeNotification(notification.id)} 
-                        className="text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <div className="relative">
+                        <button 
+                          onClick={() => toggleMenu(notification.id)} 
+                          className="text-gray-400 hover:text-white transition-colors cursor-pointer rounded-full p-1 hover:bg-gray-600"
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+                        
+                        {openMenuId === notification.id && (
+                          <div className="absolute right-0 mt-1 w-36 bg-gray-900 rounded-md shadow-lg border border-gray-700 z-10">
+                            {!notification.read && (
+                              <button 
+                                onClick={() => markAsRead(notification.id)}
+                                className="w-full text-left px-4 py-2 text-sm hover:bg-gray-700 text-blue-400 flex items-center gap-2"
+                              >
+                                <Check size={14} />
+                                Marcar leída
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => removeNotification(notification.id)}
+                              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-700 text-red-400 flex items-center gap-2"
+                            >
+                              <Trash2 size={14} />
+                              Eliminar
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </motion.div>
                   );
                 })
