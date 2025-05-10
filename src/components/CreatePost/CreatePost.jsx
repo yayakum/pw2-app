@@ -1,11 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const CreatePost = () => {
+  const [userData, setUserData] = useState(null);
   const [postText, setPostText] = useState('');
   const [mediaType, setMediaType] = useState(null); // 'image', 'video', or 'emoji'
   const [mediaFiles, setMediaFiles] = useState([]); // Array de archivos seleccionados
   const [selectedEmoji, setSelectedEmoji] = useState(null);
   const [showEmojiSelector, setShowEmojiSelector] = useState(false); // Nueva variable para controlar el selector de emojis
+
+  // Cargar datos del usuario desde localStorage cuando el componente se monta
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUserData(JSON.parse(storedUser));
+    }
+  }, []);
 
   // Referencia para el input de archivos
   const fileInputRef = React.useRef(null);
@@ -74,6 +83,7 @@ const CreatePost = () => {
   const handleSubmit = () => {
     // Aquí iría la lógica para enviar el post al backend
     console.log({
+      userId: userData ? userData.id : null,
       text: postText,
       files: mediaFiles.map(item => item.file),
       emoji: selectedEmoji
@@ -96,7 +106,9 @@ const CreatePost = () => {
           className="w-12 h-12 rounded-full border-2 border-purple-500"
         />
         <div className="flex items-center flex-wrap">
-          <span className="text-gray-300 font-medium">Nombre de Usuario</span>
+          <span className="text-gray-300 font-medium">
+            {userData ? userData.username : 'Usuario'}
+          </span>
           
           {/* Mostrar sentimiento si está seleccionado */}
           {selectedEmoji && (

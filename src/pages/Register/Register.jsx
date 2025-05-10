@@ -1,8 +1,26 @@
 import React, { useState } from "react";
-import { User, Lock, Mail, Calendar, LogIn, Star, UploadIcon,RocketIcon } from 'lucide-react';
+import { User, Lock, Mail, Calendar, UploadIcon, RocketIcon } from 'lucide-react';
+import { useNavigate, Link } from "react-router-dom";
 
-const Registro = () => {
+const Register = () => {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: ""
+  });
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
   
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -14,6 +32,67 @@ const Registro = () => {
       reader.readAsDataURL(file);
     }
   };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccessMessage("");
+    
+    // Validaciones básicas
+    if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
+      setError("Todos los campos son obligatorios");
+      return;
+    }
+    
+    if (formData.password !== formData.confirmPassword) {
+      setError("Las contraseñas no coinciden");
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      // Solo enviar username, email y password al backend
+      const userData = {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password
+      };
+      
+      const response = await fetch('http://localhost:3000/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Error al registrar usuario");
+      }
+      
+      setSuccessMessage(data.message || "¡Registro exitoso! Redirigiendo al inicio de sesión...");
+      setFormData({
+        username: "",
+        email: "",
+        password: "",
+        confirmPassword: ""
+      });
+      
+      // Redirigir al login después de un breve retraso
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
+    } catch (err) {
+      setError(err.message || "Error al procesar la solicitud");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-black pt-10 pb-10">
       {/* Estrellas animadas (efecto simple) */}
@@ -32,6 +111,18 @@ const Registro = () => {
             Registro Intergaláctico
           </h2>
           <p className="text-blue-300 mt-2">Crea tu identidad en el cosmos digital</p>
+          
+          {/* Mensaje de éxito o error */}
+          {error && (
+            <div className="mt-4 p-2 bg-red-500 bg-opacity-70 text-white rounded-md">
+              {error}
+            </div>
+          )}
+          {successMessage && (
+            <div className="mt-4 p-2 bg-green-500 bg-opacity-70 text-white rounded-md">
+              {successMessage}
+            </div>
+          )}
           
           {/* Selector de imagen de perfil con forma redonda */}
           <div className="mt-6 flex justify-center">
@@ -58,13 +149,16 @@ const Registro = () => {
           </div>
         </div>
         
-        <form className="space-y-4">
+        <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <User size={20} className="text-purple-400" />
             </div>
             <input
               type="text"
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
               className="w-full pl-10 pr-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               placeholder="Nombre de explorador"
             />
@@ -76,6 +170,9 @@ const Registro = () => {
             </div>
             <input
               type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
               className="w-full pl-10 pr-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               placeholder="Email cósmico"
             />
@@ -87,6 +184,9 @@ const Registro = () => {
             </div>
             <input
               type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
               className="w-full pl-10 pr-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               placeholder="Contraseña estelar"
             />
@@ -98,28 +198,21 @@ const Registro = () => {
             </div>
             <input
               type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
               className="w-full pl-10 pr-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               placeholder="Confirmar contraseña estelar"
-            />
-          </div>
-          
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Calendar size={20} className="text-purple-400" />
-            </div>
-            <input
-              type="date"
-              className="w-full pl-10 pr-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              placeholder="Fecha de nacimiento estelar"
             />
           </div>
           
           <div>
             <button
               type="submit"
+              disabled={isLoading}
               className="relative w-full flex justify-center py-2 px-4 rounded-lg text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 cursor-pointer hover:scale-102 duration-300 mt-10"
             >
-              Iniciar aventura espacial
+              {isLoading ? "Procesando..." : "Iniciar aventura espacial"}
             </button>
           </div>
           
@@ -134,12 +227,12 @@ const Registro = () => {
             </div>
             
             <div className="mt-6">
-              <a
-                href="#"
+              <Link
+                to="/"
                 className="w-full flex items-center justify-center px-4 py-3 border border-gray-700 rounded-lg shadow-sm bg-gray-800 text-white hover:bg-gray-700 transition-all duration-300 hover:border-purple-500"
               >
                 <span className="text-sm font-medium text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500">¿Ya tienes una cuenta? Inicia sesión</span>
-              </a>
+              </Link>
             </div>
           </div>
         </form>
@@ -148,4 +241,4 @@ const Registro = () => {
   );
 };
 
-export default Registro;
+export default Register;

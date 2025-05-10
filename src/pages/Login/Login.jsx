@@ -1,7 +1,71 @@
-import React from "react";
-import { User, Lock, LogIn, Star } from 'lucide-react';
+import React, { useState } from "react";
+import { User, Lock } from 'lucide-react';
+import { useNavigate, Link } from "react-router-dom";
 
 const Login = () => {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: ""
+  });
+  const [error, setError] = useState("");
+  
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    
+    // Validaciones básicas
+    if (!formData.email || !formData.password) {
+      setError("Email y contraseña son obligatorios");
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch('http://localhost:3000/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Error en el inicio de sesión");
+      }
+      
+      // Guardar token y datos del usuario
+      localStorage.setItem('token', data.token);
+      console.log("Token guardado:", data.token);
+      
+      const userData = {
+        id: data.userId,
+        username: data.username
+      };
+      
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      // Redirigir al dashboard
+      navigate('/Dashboard');
+    } catch (err) {
+      setError(err.message || "Error al procesar la solicitud");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-black">
       {/* Estrellas animadas (efecto simple) */}
@@ -20,18 +84,27 @@ const Login = () => {
             Acceso Espacial
           </h2>
           <p className="text-blue-300 mt-2">Ingresa a tu portal intergaláctico</p>
+          
+          {/* Mensaje de error */}
+          {error && (
+            <div className="mt-4 p-2 bg-red-500 bg-opacity-70 text-white rounded-md">
+              {error}
+            </div>
+          )}
         </div>
         
-        <form className="space-y-6">
+        <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <User size={20} className="text-purple-400" />
             </div>
             <input
               type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
               className="w-full pl-10 pr-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               placeholder="Email cósmico"
-              
             />
           </div>
           
@@ -41,9 +114,11 @@ const Login = () => {
             </div>
             <input
               type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
               className="w-full pl-10 pr-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               placeholder="Contraseña estelar"
-              
             />
           </div>
           
@@ -69,12 +144,10 @@ const Login = () => {
           <div>
             <button
               type="submit"
-              className=" relative w-full flex justify-center py-2 px-4 rounded-lg text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 cursor-pointer hover:scale-102 duration-300"
+              disabled={isLoading}
+              className="relative w-full flex justify-center py-2 px-4 rounded-lg text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 cursor-pointer hover:scale-102 duration-300"
             >
-              <span className="absolute left-0 inset-y-0 flex items-center pl-3">
-                {/* <LogIn size={20} className="text-purple-300 group-hover:text-purple-200" /> */}
-              </span>
-              Iniciar viaje espacial
+              {isLoading ? "Verificando..." : "Iniciar viaje espacial"}
             </button>
           </div>
           
@@ -89,18 +162,18 @@ const Login = () => {
             </div>
             
             <div className="mt-6">
-              <a
-                href="#"
+              <Link
+                to="/Register"
                 className="w-full flex items-center justify-center px-4 py-3 border border-gray-700 rounded-lg shadow-sm bg-gray-800 text-white hover:bg-gray-700 transition-all duration-300 hover:border-purple-500"
               >
                 <span className="text-sm font-medium text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500">¿No tienes una cuenta? Regístrate</span>
-              </a>
+              </Link>
             </div>
           </div>
         </form>
       </div>
     </div>
   );
-  
 };
+
 export default Login;

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../../components/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar/LeftSidebar';
-import { Camera, Edit, Users, Image, MessageSquare, Info, UserRoundPlus,UserRoundCheck,Bookmark  } from 'lucide-react';
+import { Camera, Edit, Users, Image, MessageSquare, Info, UserRoundPlus, UserRoundCheck, Bookmark } from 'lucide-react';
 import CreatePost from '../../components/CreatePost/CreatePost';
 import PostsList from '../../components/PostList/PostList';
 import UserEdit from '../../components/UserEdit/UserEdit';
@@ -9,69 +9,106 @@ import UserEdit from '../../components/UserEdit/UserEdit';
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('posts');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [userData, setUserData] = useState({
+    username: "Cargando...",
+    email: "Cargando...",
+    avatar: "/api/placeholder/50/50",
+    joinDate: "Cargando...",
+    friends: []
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Obtener datos del usuario al cargar el componente
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        // Primero obtenemos datos básicos del localStorage
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+          throw new Error('No se encontró token de autenticación');
+        }
+        
+        // Luego hacemos una solicitud al backend para obtener datos completos
+        const response = await fetch('http://localhost:3000/profile', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Error al obtener perfil');
+        }
+        
+        const profileData = await response.json();
+        
+        // Formateamos la fecha de creación
+        const joinDate = new Date(profileData.createdAt);
+        const formattedJoinDate = joinDate.toLocaleDateString('es-ES', {
+          year: 'numeric',
+          month: 'long'
+        });
+        
+        // Actualizamos el estado con los datos completos
+        setUserData({
+          ...profileData,
+          username: profileData.username || storedUser.username,
+          joinDate: formattedJoinDate,
+          friends: profileData._count?.seguidores || 0,
+          coverImage: "/api/placeholder/800/300", // Placeholder hasta tener imagen real
+          avatar: profileData.profilePic 
+            ? `data:image/jpeg;base64,${profileData.profilePic}` 
+            : "/api/placeholder/50/50"
+        });
+        
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+        
+        // Si hay error, usamos los datos básicos del localStorage
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        
+        setUserData(prevData => ({
+          ...prevData,
+          username: storedUser.username || 'Usuario',
+          email: 'No disponible',
+        }));
+        
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+    
+    fetchUserProfile();
+  }, []);
+
   const initialUserData = {
-    name: 'Explorador Cósmico',
-    email: 'cosmonaut@galaxia.com',
-    profileImage: null,
+    name: userData.username,
+    email: userData.email,
+    profileImage: userData.avatar,
     birthDate: '1990-01-01'
   };
-  // Datos de ejemplo (en una aplicación real vendrían de una API o Redux)
-  const userData = {
-    name: "Nombre del Usuario",
-    bio: "Explorador cósmico",
-    coverImage: "/api/placeholder/800/300",
-    avatar: "../assets/images/avatar.jpg",
-    
-    friends: [
-      { id: 1, name: "Ana García", avatar: "/api/placeholder/50/50" },
-      { id: 2, name: "Carlos López", avatar: "/api/placeholder/50/50" },
-      { id: 3, name: "Elena Martínez", avatar: "/api/placeholder/50/50" }
-    ]
-  };
+
   const posts = [
     {
       id: 1,
       user: {
-        name: 'Astro Explorer',
-        avatar: '/api/placeholder/40/40',
+        name: userData.username,
+        avatar: userData.avatar,
         verified: true
       },
       time: 'hace 2 horas',
       content: 'Acabo de descubrir esta increíble nebulosa en mi viaje espacial. ¡Las vistas son impresionantes! ¿Alguien más ha explorado esta región?',
       image: '/neji.jfif',
       likes: 245,
-      comments: [
-        
-      ],
+      comments: [],
       shares: 12
     },
-    {
-      id: 2, 
-      user: {
-        name: 'Galáctica Viajera',
-        avatar: '/api/placeholder/40/40',
-        verified: false
-      },
-      time: 'hace 5 horas',
-      content: 'Hoy es mi primer día usando CosmicPortal y debo decir que la comunidad es increíble. Espero conectar con más exploradores espaciales como ustedes.',
-      likes: 87,
-      comments: 14,
-      shares: 3
-    },
-    {
-      id: 3,
-      user: {
-        name: 'Orbital Science',
-        avatar: '/api/placeholder/40/40',
-        verified: true
-      },
-      time: 'hace 1 día',
-      content: 'Nuevo descubrimiento: hemos identificado un sistema estelar con potencial para albergar vida. Los detalles se publicarán pronto en nuestra página oficial. ¡Manténganse sintonizados!',
-      image: '../assets/react.jpg',
-      likes: 1024,
-      comments: 342,
-      shares: 189
-    }
+    // Los otros posts...
   ];
 
   // Renderizar el contenido según la pestaña activa
@@ -79,7 +116,6 @@ const Profile = () => {
     switch(activeTab) {
       case 'posts':
         return (
-          
           <div className="space-y-4">
             <CreatePost/>
             <PostsList posts={posts} />
@@ -89,19 +125,19 @@ const Profile = () => {
         return (
           <div className="p-4 bg-gray-800 rounded-lg shadow-md">
             <h3 className="text-lg font-medium mb-4">Información</h3>
-            {/* <hr className='-mt-2 mb-2'/> */}
             <div className="space-y-3">
               <div>
-                <h4 className="text-gray-400 text-sm">Biografía</h4>
-                <p>{userData.bio}</p>
+                <h4 className="text-gray-400 text-sm">Nombre</h4>
+                <p>{userData.username}</p>
               </div>
               <div>
-                <h4 className="text-gray-400 text-sm">Intereses</h4>
-                <p>Tecnología, Espacio, Exploración Digital</p>
+                <h4 className="text-gray-400 text-sm">Email</h4>
+                <p>{userData.email}</p>
               </div>
+
               <div>
                 <h4 className="text-gray-400 text-sm">Se unió</h4>
-                <p>Enero 2024</p>
+                <p>{userData.joinDate}</p>
               </div>
             </div>
           </div>
@@ -109,18 +145,15 @@ const Profile = () => {
       case 'friends':
         return (
           <div className="p-4 bg-gray-800 rounded-lg shadow-md">
-            <h3 className="text-lg font-medium mb-4">Amigos ({userData.friends.length})</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {userData.friends.map(friend => (
-                <div key={friend.id} className="flex items-center p-3 bg-gray-700 rounded-lg">
-                  <img src={friend.avatar} alt={friend.name} className="w-12 h-12 rounded-full mr-3" />
-                  <div>
-                    <h4 className="font-medium">{friend.name}</h4>
-                    <button className="text-sm text-purple-400 hover:text-purple-300">Ver perfil</button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <h3 className="text-lg font-medium mb-4">Seguidores ({userData.friends})</h3>
+            {userData.friends > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Aquí iría un map de los amigos cuando tengamos esa información */}
+                <p>No hay información disponible sobre seguidores</p>
+              </div>
+            ) : (
+              <p>Aún no tienes seguidores</p>
+            )}
           </div>
         );
       case 'multimedia':
@@ -154,10 +187,31 @@ const Profile = () => {
     }
   };
 
+  // Mostrar un indicador de carga mientras obtenemos los datos
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-gray-200 bg-fixed">
+        <Header className="sticky top-0 z-10" />
+        <div className="container mx-auto px-4 py-12 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+          <p className="ml-4">Cargando perfil...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-gray-200 bg-fixed">
       <Header className="sticky top-0 z-10" />
+
+       {/* Error message if any */}
+       {error && (
+        <div className="container mx-auto px-4 py-4">
+          <div className="bg-red-500 bg-opacity-70 text-white p-3 rounded-lg">
+            {error}
+          </div>
+        </div>
+       )}
 
        {/* User Edit Modal */}
        <UserEdit
@@ -186,22 +240,16 @@ const Profile = () => {
                 />
               </div>
               <div className="ml-0 sm:ml-4 mt-3 sm:mt-0">
-                <h2 className="text-2xl font-semibold">{userData.name}</h2>
-                <p className="text-gray-400">{userData.bio}</p>
+                <h2 className="text-2xl font-semibold">{userData.username}</h2>
+                
               </div>
               <button
               onClick={() => setIsModalOpen(true)}
                 className="-mb-8 mt-4 sm:mt-0 sm:ml-auto px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-md text-white flex items-center transition-colors cursor-pointer"
               >
-                <Edit size={16}/>
-                
+                <Edit size={16} className="mr-2" />
+                Editar Perfil
               </button>
-              {/* <button 
-                
-                className="-mb-8 mt-4 sm:mt-0 sm:ml-auto px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-md text-white flex items-center transition-colors cursor-pointer"
-              >
-                <UserRoundPlus size={16}/>
-              </button> */}
             </div>
           </div>
 

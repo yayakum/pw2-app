@@ -9,7 +9,7 @@ import Chats from "../pages/Chats/Chats.jsx";
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route index path="/Login" element={<Login />} />
+      <Route index path="/" element={<Login />} />
       <Route path="/Dashboard" element={<Dashboard/>}></Route>
       <Route path="/Register" element={<Register/>}></Route>
       <Route path="/Profile" element={<Profile/>}></Route>
