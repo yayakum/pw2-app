@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Bookmark, Heart, MessageCircle, Trash2, Send, CheckCircle, MoreHorizontal, Edit, X } from 'lucide-react';
+import { Bookmark, Heart, MessageCircle, Trash2, MoreHorizontal, Edit, X } from 'lucide-react';
 import CommentsModal from '../Comment/Comment';
 import ConfirmationModal from '../ConfirmationModal/ConfirmationModal';
 import EditPost from '../EditPost/EditPost';
@@ -127,7 +127,7 @@ const Post = ({ post, onDelete }) => {
   };
 
   // Función para guardar la edición
-  const handleSaveEdit = async (newContent, newMedia, newEmoji, mediaType) => {
+  const handleSaveEdit = async (newContent, newEmoji) => {
     try {
       const token = localStorage.getItem('token');
       
@@ -135,25 +135,22 @@ const Post = ({ post, onDelete }) => {
         throw new Error('No hay token de autenticación');
       }
       
-      // Crear un FormData para enviar archivos
-      const formData = new FormData();
-      formData.append('description', newContent);
+      // Crear un objeto para enviar los datos
+      const postData = {
+        description: newContent
+      };
       
       if (newEmoji) {
-        formData.append('emoji', JSON.stringify(newEmoji));
-      }
-      
-      if (newMedia && typeof newMedia === 'object') {
-        formData.append('file', newMedia);
-        formData.append('fileType', mediaType);
+        postData.emoji = JSON.stringify(newEmoji);
       }
       
       const response = await fetch(`http://localhost:3000/updatePost/${post.id}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        body: formData
+        body: JSON.stringify(postData)
       });
       
       if (!response.ok) {
@@ -217,56 +214,41 @@ const Post = ({ post, onDelete }) => {
     return post.user?.name || post.usuario?.username || "Usuario";
   };
 
-  // Renderizar el contenido multimedia
-  const renderMediaContent = () => {
+  // Renderiza el contenido multimedia según el tipo
+  const renderMedia = () => {
+    // Si no hay contenido o tipo de contenido, no renderizamos nada
     if (!post.content || !post.contentType) {
       return null;
     }
 
-    try {
-      // Verificar si el contenido es una imagen
-      if (post.contentType.includes('image')) {
-        return (
-          <div className="mt-3 rounded-lg overflow-hidden">
-            <img 
-              src={`data:${post.contentType};base64,${post.content}`}
-              alt="Contenido del post"
-              className="w-full max-h-96 object-contain"
-              onError={(e) => {
-                console.error("Error al cargar imagen:", e);
-                e.target.onerror = null;
-                e.target.src = "/api/placeholder/400/300";
-              }}
-            />
-          </div>
-        );
-      }
-      
-      // Verificar si el contenido es un video
-      if (post.contentType.includes('video')) {
-        return (
-          <div className="mt-3 rounded-lg overflow-hidden">
-            <video 
-              src={`data:${post.contentType};base64,${post.content}`}
-              className="w-full max-h-96"
-              controls
-              onError={(e) => {
-                console.error("Error al cargar video:", e);
-              }}
-            />
-          </div>
-        );
-      }
-      
-      return null;
-    } catch (error) {
-      console.error("Error al renderizar contenido multimedia:", error);
+    // Verificamos si el contenido es una imagen
+    if (post.contentType.startsWith('image/')) {
       return (
-        <div className="mt-3 p-3 bg-red-900 bg-opacity-30 rounded-lg text-sm">
-          Error al cargar el contenido multimedia
+        <div className="mt-3 mb-3">
+          <img 
+            src={`data:${post.contentType};base64,${post.content}`}
+            alt="Imagen de la publicación"
+            className="w-full rounded-lg max-h-96 object-contain bg-gray-900"
+          />
         </div>
       );
     }
+    
+    // Verificamos si el contenido es un video
+    if (post.contentType.startsWith('video/')) {
+      return (
+        <div className="mt-3 mb-3">
+          <video 
+            src={`data:${post.contentType};base64,${post.content}`}
+            controls
+            className="w-full rounded-lg max-h-96"
+          />
+        </div>
+      );
+    }
+    
+    // Si no es un tipo reconocido, no mostramos nada
+    return null;
   };
 
   return (
@@ -281,9 +263,6 @@ const Post = ({ post, onDelete }) => {
           <div>
             <div className="flex items-center flex-wrap">
               <h3 className="font-medium">{getUserName()}</h3>
-              {post.user?.verified && (
-                <CheckCircle className="w-4 h-4 ml-1 text-blue-400" />
-              )}
               
               {/* Usar el componente EmojiDisplay para mostrar el emoji */}
               {postEmoji && (
@@ -292,7 +271,7 @@ const Post = ({ post, onDelete }) => {
                 </div>
               )}
             </div>
-            <p className="text-xs text-gray-400">{post.time}</p>
+            <p className="text-xs text-gray-400">{post.time || new Date(post.createdAt).toLocaleString()}</p>
           </div>
         </div>
         {isOwner && (
@@ -319,8 +298,6 @@ const Post = ({ post, onDelete }) => {
           <EditPost
             post={{ 
               description: post.description,
-              content: post.content,
-              contentType: post.contentType,
               emoji: postEmoji 
             }} 
             onSave={handleSaveEdit} 
@@ -329,7 +306,8 @@ const Post = ({ post, onDelete }) => {
         ) : (
           <>
             <p className="text-sm sm:text-base">{post.description}</p>
-            {renderMediaContent()}
+            {/* Renderizar el contenido multimedia */}
+            {renderMedia()}
           </>
         )}
       </div>

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../components/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar/LeftSidebar';
-import { Camera, Edit, Users, Image, MessageCircle, Info, UserRoundPlus, UserRoundCheck, Bookmark } from 'lucide-react';
+import { Edit, Users, MessageCircle, Info, Bookmark, Image } from 'lucide-react';
 import CreatePost from '../../components/CreatePost/CreatePost';
 import PostsList from '../../components/PostList/PostList';
 import UserEdit from '../../components/UserEdit/UserEdit';
+import MediaGallery from '../../components/MediaGallery/MediaGallery';
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('posts');
@@ -12,7 +13,6 @@ const Profile = () => {
   const [userData, setUserData] = useState({
     username: "Cargando...",
     email: "Cargando...",
-    avatar: "/api/placeholder/50/50",
     joinDate: "Cargando...",
     friends: []
   });
@@ -21,6 +21,7 @@ const Profile = () => {
   
   // Estados para las publicaciones
   const [posts, setPosts] = useState([]);
+  const [mediaPosts, setMediaPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [postsError, setPostsError] = useState(null);
   const [refreshPosts, setRefreshPosts] = useState(0); // Para forzar la recarga
@@ -84,11 +85,7 @@ const Profile = () => {
           ...profileData,
           username: profileData.username || storedUser.username,
           joinDate: formattedJoinDate,
-          friends: profileData._count?.seguidores || 0,
-          coverImage: "/api/placeholder/800/300", // Placeholder hasta tener imagen real
-          // No procesamos profilePic aquí, se usará MediaDisplay posteriormente
-          profilePic: profileData.profilePic,
-          profilePicType: 'image/jpeg' // Asumimos que el avatar es JPEG
+          friends: profileData._count?.seguidores || 0
         });
         
         setLoading(false);
@@ -144,20 +141,16 @@ const Profile = () => {
         
         // Verificar si la respuesta tiene la estructura esperada
         if (responseData.data && Array.isArray(responseData.data)) {
-          // Los datos ya vienen formateados desde el backend con content en base64
-          // No necesitamos hacer ninguna conversión adicional
           const formattedPosts = responseData.data.map(post => {
             return {
               id: post.id,
               userId: post.userId,
               description: post.description,
-              content: post.content,  // Ya es base64 desde el backend
+              content: post.content,
               contentType: post.contentType,
               createdAt: post.createdAt,
               user: {
                 name: post.usuario?.username || 'Usuario',
-                avatar: post.usuario?.profilePic ? `data:image/jpeg;base64,${post.usuario.profilePic}` : '/api/placeholder/40/40',
-                verified: false
               },
               usuario: post.usuario,
               time: formatTimestamp(post.createdAt),
@@ -171,6 +164,14 @@ const Profile = () => {
           });
           
           setPosts(formattedPosts);
+          
+          // Filtramos las publicaciones que contienen contenido multimedia
+          const mediaContent = formattedPosts.filter(post => 
+            post.content && post.contentType && 
+            (post.contentType.startsWith('image/') || post.contentType.startsWith('video/'))
+          );
+          
+          setMediaPosts(mediaContent);
         } else {
           throw new Error('Formato de datos inesperado');
         }
@@ -190,7 +191,6 @@ const Profile = () => {
   const initialUserData = {
     name: userData.username,
     email: userData.email,
-    profileImage: userData.avatar,
     birthDate: userData.birthDate || '1990-01-01'
   };
 
@@ -210,6 +210,7 @@ const Profile = () => {
     
     // Si es un ID específico, eliminamos esa publicación del estado
     setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+    setMediaPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
   };
 
   // Renderizar el contenido según la pestaña activa
@@ -256,6 +257,7 @@ const Profile = () => {
             )}
           </div>
         );
+      
       case 'info':
         return (
           <div className="p-4 bg-gray-800 rounded-lg shadow-md">
@@ -291,79 +293,34 @@ const Profile = () => {
             )}
           </div>
         );
-      case 'multimedia':
-        // Filtrar solo publicaciones con imágenes o videos
-        const mediaItems = posts.filter(post => post.content && post.contentType);
-        
-        return (
-          <div className="p-4 bg-gray-800 rounded-lg shadow-md">
-            <h3 className="text-lg font-medium mb-4">Multimedia</h3>
-            
-            {loadingPosts && (
-              <div className="flex justify-center items-center p-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500"></div>
-                <span className="ml-3">Cargando multimedia...</span>
-              </div>
-            )}
-            
-            {!loadingPosts && mediaItems.length === 0 && (
-              <p className="text-center text-gray-400 py-4">
-                No has compartido ninguna imagen o video aún
-              </p>
-            )}
-            
-            {!loadingPosts && mediaItems.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {mediaItems.map((item, index) => (
-                  <div key={`media-${item.id}-${index}`} className="relative group">
-                    <div className="w-full h-32 rounded-lg overflow-hidden">
-                      {item.contentType?.includes('image') ? (
-                        <img 
-                          src={`data:${item.contentType};base64,${item.content}`}
-                          alt="Contenido del post"
-                          className="h-32 w-full object-cover"
-                          onError={(e) => {
-                            console.error("Error al cargar imagen:", e);
-                            e.target.onerror = null;
-                            e.target.src = "/api/placeholder/50/50";
-                          }}
-                        />
-                      ) : item.contentType?.includes('video') ? (
-                        <video 
-                          src={`data:${item.contentType};base64,${item.content}`}
-                          className="h-32 w-full object-cover"
-                          controls={false}
-                          muted
-                          loop
-                          onError={(e) => {
-                            console.error("Error al cargar video:", e);
-                          }}
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center h-32 w-full bg-gray-700">
-                          <p className="text-sm text-gray-300">Formato no soportado</p>
-                        </div>
-                      )}
-                      
-                      {/* Capa de overlay para efectos visuales */}
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg flex items-center justify-center">
-                        <button className="opacity-0 group-hover:opacity-100 text-white">
-                          {item.contentType?.includes('image') ? (
-                            <Image size={24} />
-                          ) : (
-                            <svg className="w-12 h-12 text-white opacity-70" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M8 5v14l11-7z" />
-                            </svg>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+
+        case 'multimedia':
+          return (
+            <div className="space-y-4">
+              {loadingPosts && (
+                <div className="flex justify-center items-center p-6 bg-gray-800 bg-opacity-60 rounded-lg">
+                  <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-500"></div>
+                  <span className="ml-3">Cargando multimedia...</span>
+                </div>
+              )}
+              
+              {!loadingPosts && !postsError && (
+                <div className="p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md">
+                  <h3 className="text-lg font-medium mb-2">Galería Multimedia</h3>
+                  <p className="text-sm text-gray-400 mb-4">
+                    {mediaPosts.length === 0 
+                      ? "Aún no tienes contenido multimedia. Cuando subas fotos o videos aparecerán aquí." 
+                      : `Mostrando ${mediaPosts.length} elemento${mediaPosts.length !== 1 ? 's' : ''} multimedia.`
+                    }
+                  </p>
+                  
+                  {/* Usando el nuevo componente MediaGallery */}
+                  <MediaGallery mediaPosts={mediaPosts} />
+                </div>
+              )}
+            </div>
         );
+
       case 'favorites':
         // Podríamos implementar una pestaña para mostrar publicaciones guardadas o con "me gusta"
         return ( 
@@ -392,38 +349,6 @@ const Profile = () => {
     );
   }
 
-  // Función para renderizar el avatar del usuario
-  const renderUserAvatar = () => {
-    // Si tenemos profilePic almacenado como base64
-    if (userData.profilePic) {
-      return (
-        <div className="relative">
-          <img
-            src={`data:image/jpeg;base64,${userData.profilePic}`}
-            alt="Avatar del usuario"
-            className="w-28 h-28 rounded-full border-3 border-purple-500 -mt-12 object-cover"
-            onError={(e) => {
-              console.error("Error al cargar avatar:", e);
-              e.target.onerror = null; // Prevenir bucles infinitos
-              e.target.src = "/api/placeholder/50/50";
-            }}
-          />
-        </div>
-      );
-    }
-    
-    // Si no hay imagen, mostrar un placeholder
-    return (
-      <div className="relative">
-        <img
-          src="/api/placeholder/50/50"
-          alt="Avatar del usuario"
-          className="w-28 h-28 rounded-full border-3 border-purple-500 -mt-12 object-cover"
-        />
-      </div>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-gray-200 bg-fixed">
       <Header className="sticky top-0 z-10" />
@@ -450,19 +375,33 @@ const Profile = () => {
 
         {/* Contenido principal del perfil */}
         <section className="w-full md:w-2/3 md:px-4">
-          {/* Portada y Foto de perfil */}
-          <div className="relative bg-gray-800 rounded-lg shadow-md overflow-hidden">
-            <div className="h-46 bg-cover bg-center" style={{ backgroundImage: `url('${userData.coverImage}')` }}>
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-40"></div>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:items-center p-4 relative">
-              {renderUserAvatar()}
-              <div className="ml-0 sm:ml-4 mt-3 sm:mt-0">
+          {/* Cabecera de perfil simplificada */}
+          <div className="bg-gray-800 rounded-lg shadow-md p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center relative">
+              {/* Avatar como elemento de texto */}
+              <div className="w-24 h-24 rounded-full bg-purple-700 flex items-center justify-center border-4 border-purple-500 mb-4 sm:mb-0">
+                <span className="text-white text-4xl font-bold">
+                  {userData.username ? userData.username.charAt(0).toUpperCase() : 'U'}
+                </span>
+              </div>
+              
+              <div className="ml-0 sm:ml-6">
                 <h2 className="text-2xl font-semibold">{userData.username}</h2>
+                <p className="text-gray-400">Miembro desde {userData.joinDate}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="flex items-center text-sm text-gray-400">
+                    <MessageCircle size={16} className="mr-1" />
+                    <span>{posts.length} publicaciones</span>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-400">
+                    <Image size={16} className="mr-1" />
+                    <span>{mediaPosts.length} elementos multimedia</span>
+                  </div>
+                </div>
               </div>
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="-mb-8 mt-4 sm:mt-0 sm:ml-auto px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-md text-white flex items-center transition-colors cursor-pointer"
+                className="mt-4 sm:mt-0 sm:ml-auto px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-md text-white flex items-center transition-colors cursor-pointer"
               >
                 <Edit size={16} className="mr-2" />
                 Editar Perfil
@@ -500,7 +439,6 @@ const Profile = () => {
               <Image size={16} className="mr-2" />
               Multimedia
             </button>
-
             <button 
               className={`px-4 py-2 rounded-lg text-white flex items-center transition-colors ${activeTab === 'favorites' ? 'bg-gradient-to-r from-blue-900 via-purple-900 to-blue-900 bg-opacity-100' : 'bg-gray-800 hover:bg-gray-700'} cursor-pointer`}
               onClick={() => setActiveTab('favorites')}

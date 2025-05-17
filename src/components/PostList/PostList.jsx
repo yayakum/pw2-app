@@ -6,11 +6,40 @@ const PostsList = ({ posts: initialPosts, onPostDelete }) => {
 
   // Actualizar los posts cuando cambian las props
   useEffect(() => {
-    setPosts(initialPosts || []);
+    if (initialPosts && initialPosts.length > 0) {
+      // Asegurarse de que los datos estén en el formato correcto para renderizar
+      const formattedPosts = initialPosts.map(post => {
+        // Si el post ya tiene bien el formato, no modificarlo
+        if (typeof post.content === 'string') {
+          return post;
+        }
+        
+        // Si necesitamos hacer ajustes al formato
+        return {
+          ...post,
+          content: post.content || null,
+          contentType: post.contentType || null,
+          time: post.time || new Date(post.createdAt).toLocaleString()
+        };
+      });
+      
+      setPosts(formattedPosts);
+    } else {
+      setPosts([]);
+    }
   }, [initialPosts]);
 
   // Manejar la eliminación de un post
   const handleDeletePost = (postId) => {
+    // Si es "refresh", notificar al componente padre
+    if (postId === "refresh") {
+      if (onPostDelete) {
+        onPostDelete(postId);
+      }
+      return;
+    }
+    
+    // Si es un ID específico, eliminamos esa publicación del estado
     setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
     
     // Notificar al componente padre si existe la función

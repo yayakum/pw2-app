@@ -62,13 +62,14 @@ const Dashboard = () => {
       // Acceder al array de posts en data.data y configurar la paginación
       if (responseData.data && Array.isArray(responseData.data)) {
         // Transforma los datos para que coincidan con la estructura esperada por el componente Post
-        const formattedPosts = responseData.data.map(post => {
+       const formattedPosts = responseData.data.map(post => {
           return {
             id: post.id,
             userId: post.userId,
             description: post.description,
-            contentType: post.contentType,
+            // Asegurarnos de incluir content y contentType para mostrar imágenes y videos
             content: post.content,
+            contentType: post.contentType,
             createdAt: post.createdAt,
             user: {
               name: post.usuario?.username || 'Usuario',
@@ -85,7 +86,7 @@ const Dashboard = () => {
             _count: post._count
           };
         });
-        
+                
         setPosts(formattedPosts);
         
         // Configurar la paginación si está disponible
