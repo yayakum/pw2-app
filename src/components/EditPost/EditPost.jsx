@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X } from 'lucide-react';
+import EmojiDisplay from '../EmojiDisplay/EmojiDisplay';
 
 const EditPost = ({ post, onSave, onCancel }) => {
   // Determinar el tipo de medio y URL correctamente
@@ -88,6 +88,19 @@ const EditPost = ({ post, onSave, onCancel }) => {
     setSelectedEmoji(null);
   };
 
+  // Determinar el contentType para MediaDisplay
+  const getContentType = () => {
+    if (mediaFiles.length === 0) return null;
+    
+    // Si tenemos un file, usar su tipo
+    if (mediaFiles[0].file) {
+      return mediaFiles[0].file.type || (mediaType === 'image' ? 'image/jpeg' : 'video/mp4');
+    }
+    
+    // Si solo tenemos una URL, usar el contentType del post o inferirlo del mediaType
+    return post.contentType || (mediaType === 'image' ? 'image/jpeg' : 'video/mp4');
+  };
+
   return (
     <form onSubmit={handleSubmit} className="mb-4">
       <textarea
@@ -98,58 +111,15 @@ const EditPost = ({ post, onSave, onCancel }) => {
         rows={4}
       />
       
-      {/* Previsualización de imagen */}
-      {mediaType === 'image' && mediaFiles.length > 0 && (
-        <div className="mt-3 mb-3">
-          <div className="relative">
-            <img 
-              src={mediaFiles[0].url} 
-              alt="Imagen seleccionada" 
-              className="rounded-lg h-48 w-full object-cover"
-            />
-            <button 
-              type="button"
-              onClick={handleRemoveMedia}
-              className="absolute top-2 right-2 bg-gray-800 bg-opacity-70 rounded-full p-1 text-white hover:bg-red-500"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        </div>
-      )}
-      
-      {/* Previsualización de video */}
-      {mediaType === 'video' && mediaFiles.length > 0 && (
-        <div className="mt-3 mb-3">
-          <div className="relative">
-            <video 
-              src={mediaFiles[0].url} 
-              controls 
-              className="max-h-64 w-full rounded-lg"
-            />
-            <button 
-              type="button"
-              onClick={handleRemoveMedia}
-              className="absolute top-2 right-2 bg-gray-800 bg-opacity-70 rounded-full p-1 text-white hover:bg-red-500"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        </div>
-      )}
-      
-      {/* Emoji seleccionado */}
+      {/* Usar EmojiDisplay para emoji seleccionado */}
       {selectedEmoji && (
-        <div className="flex items-center mt-3 mb-3 bg-gray-700 px-3 py-2 rounded-lg w-fit">
-          <span className="text-xl mr-2">{selectedEmoji.emoji}</span>
-          <span className="text-gray-300">Se siente {selectedEmoji.label.toLowerCase()}</span>
-          <button 
-            type="button"
-            onClick={removeEmoji}
-            className="ml-2 text-gray-400 hover:text-white"
-          >
-            <X size={16} />
-          </button>
+        <div className="mt-3 mb-3">
+          <EmojiDisplay 
+            emoji={selectedEmoji} 
+            showRemoveButton={true}
+            onRemove={removeEmoji}
+            className="w-fit"
+          />
         </div>
       )}
       

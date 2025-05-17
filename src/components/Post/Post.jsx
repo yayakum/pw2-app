@@ -3,22 +3,22 @@ import { Bookmark, Heart, MessageCircle, Trash2, Send, CheckCircle, MoreHorizont
 import CommentsModal from '../Comment/Comment';
 import ConfirmationModal from '../ConfirmationModal/ConfirmationModal';
 import EditPost from '../EditPost/EditPost';
+import EmojiDisplay from '../EmojiDisplay/EmojiDisplay';
 
 // Componente principal Post con integración de modal de comentarios
 const Post = ({ post, onDelete }) => {
   // Estado para manejar likes
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.likes);
+  const [liked, setLiked] = useState(post.hasLiked || false);
+  const [likeCount, setLikeCount] = useState(post._count?.likes || post.likes || 0);
 
   // Estado para el menú de opciones
   const [optionsMenuOpen, setOptionsMenuOpen] = useState(false);
 
   // Estado para la edición de la publicación
   const [isEditing, setIsEditing] = useState(false);
-  const [postContent, setPostContent] = useState(post.content);
-  const [postMedia, setPostMedia] = useState(post.image || post.video || null);
-  const [postMediaType, setPostMediaType] = useState(post.image ? 'image' : (post.video ? 'video' : null));
-  const [postEmoji, setPostEmoji] = useState(post.emoji || null);
+  
+  // Estado para los emojis
+  const [postEmoji, setPostEmoji] = useState(post.emojiData || post.emoji || null);
   
   // Estado para el modal de comentarios
   const [commentsModalOpen, setCommentsModalOpen] = useState(false);
@@ -26,11 +26,52 @@ const Post = ({ post, onDelete }) => {
   
   // Estado para el modal de confirmación de eliminación
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+
+  // Verificar si el usuario actual es el dueño de la publicación
+  const [userData] = useState(() => {
+    const storedUser = localStorage.getItem('user');
+    return storedUser ? JSON.parse(storedUser) : null;
+  });
+  
+  const isOwner = userData && parseInt(userData.id) === parseInt(post.userId);
 
   // Función para manejar likes
-  const handleLike = () => {
-    setLiked(!liked);
-    setLikeCount(liked ? likeCount - 1 : likeCount + 1);
+  const handleLike = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        throw new Error('No hay token de autenticación');
+      }
+      
+      const url = liked 
+        ? `http://localhost:3000/unlikePost/${post.id}`
+        : `http://localhost:3000/likePost/${post.id}`;
+      
+      const method = liked ? 'DELETE' : 'POST';
+      
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al procesar el like');
+      }
+      
+      // Actualizar el estado local
+      setLiked(!liked);
+      setLikeCount(liked ? likeCount - 1 : likeCount + 1);
+      
+    } catch (err) {
+      console.error('Error handling like:', err);
+      // Mantener el estado anterior en caso de error
+    }
   };
 
   // Funciones para el menú de opciones
@@ -46,29 +87,95 @@ const Post = ({ post, onDelete }) => {
   };
 
   // Función para manejar la confirmación de eliminación
-  const handleConfirmDelete = () => {
-    if (onDelete) {
-      onDelete(post.id);
-    } else {
-      console.log('Post eliminado:', post);
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
+    setDeleteError(null);
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        throw new Error('No hay token de autenticación');
+      }
+      
+      const response = await fetch(`http://localhost:3000/deletePost/${post.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al eliminar la publicación');
+      }
+      
+      // Cerrar el modal y notificar al componente padre
+      setDeleteModalOpen(false);
+      
+      if (onDelete) {
+        onDelete(post.id);
+      }
+      
+    } catch (err) {
+      console.error('Error deleting post:', err);
+      setDeleteError(err.message || 'Error al eliminar la publicación');
+    } finally {
+      setIsDeleting(false);
     }
-    setDeleteModalOpen(false);
   };
 
   // Función para guardar la edición
-  const handleSaveEdit = (newContent, newMedia, newEmoji, mediaType) => {
-    setPostContent(newContent);
-    setPostMedia(newMedia);
-    setPostEmoji(newEmoji);
-    setPostMediaType(mediaType);
-    setIsEditing(false);
-    
-    console.log('Post actualizado:', {
-      content: newContent,
-      media: newMedia,
-      mediaType: mediaType,
-      emoji: newEmoji
-    });
+  const handleSaveEdit = async (newContent, newMedia, newEmoji, mediaType) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        throw new Error('No hay token de autenticación');
+      }
+      
+      // Crear un FormData para enviar archivos
+      const formData = new FormData();
+      formData.append('description', newContent);
+      
+      if (newEmoji) {
+        formData.append('emoji', JSON.stringify(newEmoji));
+      }
+      
+      if (newMedia && typeof newMedia === 'object') {
+        formData.append('file', newMedia);
+        formData.append('fileType', mediaType);
+      }
+      
+      const response = await fetch(`http://localhost:3000/updatePost/${post.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al actualizar la publicación');
+      }
+      
+      // Actualizar el estado local con los datos de respuesta
+      const updatedPost = await response.json();
+      
+      setPostEmoji(updatedPost.emojiData || updatedPost.emoji);
+      setIsEditing(false);
+      
+      // Recargar la publicación (Idealmente esto debería ser manejado a nivel de componente padre)
+      if (onDelete) {
+        setTimeout(() => onDelete("refresh"), 500);
+      }
+      
+    } catch (err) {
+      console.error('Error updating post:', err);
+      // Mantener el estado anterior en caso de error
+    }
   };
   
   // Función para abrir el modal de comentarios
@@ -81,57 +188,139 @@ const Post = ({ post, onDelete }) => {
     setCommentsModalOpen(false);
   };
 
+  // Función para cargar los comentarios de una publicación
+  const loadComments = async () => {
+    try {
+      const response = await fetch(`http://localhost:3000/getPostComments/${post.id}`);
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar los comentarios');
+      }
+      
+      const data = await response.json();
+      setComments(data);
+      
+    } catch (err) {
+      console.error('Error loading comments:', err);
+    }
+  };
+  
+  // Cargar comentarios al abrir el modal
+  React.useEffect(() => {
+    if (commentsModalOpen) {
+      loadComments();
+    }
+  }, [commentsModalOpen]);
+
+  // Obtener nombre de usuario
+  const getUserName = () => {
+    return post.user?.name || post.usuario?.username || "Usuario";
+  };
+
+  // Renderizar el contenido multimedia
+  const renderMediaContent = () => {
+    if (!post.content || !post.contentType) {
+      return null;
+    }
+
+    try {
+      // Verificar si el contenido es una imagen
+      if (post.contentType.includes('image')) {
+        return (
+          <div className="mt-3 rounded-lg overflow-hidden">
+            <img 
+              src={`data:${post.contentType};base64,${post.content}`}
+              alt="Contenido del post"
+              className="w-full max-h-96 object-contain"
+              onError={(e) => {
+                console.error("Error al cargar imagen:", e);
+                e.target.onerror = null;
+                e.target.src = "/api/placeholder/400/300";
+              }}
+            />
+          </div>
+        );
+      }
+      
+      // Verificar si el contenido es un video
+      if (post.contentType.includes('video')) {
+        return (
+          <div className="mt-3 rounded-lg overflow-hidden">
+            <video 
+              src={`data:${post.contentType};base64,${post.content}`}
+              className="w-full max-h-96"
+              controls
+              onError={(e) => {
+                console.error("Error al cargar video:", e);
+              }}
+            />
+          </div>
+        );
+      }
+      
+      return null;
+    } catch (error) {
+      console.error("Error al renderizar contenido multimedia:", error);
+      return (
+        <div className="mt-3 p-3 bg-red-900 bg-opacity-30 rounded-lg text-sm">
+          Error al cargar el contenido multimedia
+        </div>
+      );
+    }
+  };
+
   return (
     <div className="mb-6 p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md relative">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <img
-            src={post.user.avatar}
-            alt={`${post.user.name}'s avatar`}
-            className="w-10 h-10 rounded-full border-2 border-purple-500"
-          />
+          {/* Imagen de avatar reemplazada por un div de placeholder fijo */}
+          <div className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500">
+            <span className="text-white font-bold">{getUserName().charAt(0).toUpperCase()}</span>
+          </div>
+          
           <div>
             <div className="flex items-center flex-wrap">
-              <h3 className="font-medium">{post.user.name}</h3>
-              {post.user.verified && (
+              <h3 className="font-medium">{getUserName()}</h3>
+              {post.user?.verified && (
                 <CheckCircle className="w-4 h-4 ml-1 text-blue-400" />
               )}
               
-              {/* Mostrar sentimiento si existe */}
+              {/* Usar el componente EmojiDisplay para mostrar el emoji */}
               {postEmoji && (
-                <div className="flex items-center ml-2 bg-gray-700 px-2 py-1 rounded-full text-xs text-gray-300">
-                  <span>se siente {postEmoji.label.toLowerCase()}</span>
-                  <span className="ml-1">{postEmoji.emoji}</span>
+                <div className="ml-2">
+                  <EmojiDisplay emoji={postEmoji} />
                 </div>
               )}
             </div>
             <p className="text-xs text-gray-400">{post.time}</p>
           </div>
         </div>
-        <div className="relative">
-          <button 
-            className="text-gray-400 hover:text-gray-300 cursor-pointer"
-            onClick={() => setOptionsMenuOpen(!optionsMenuOpen)}
-          >
-            <MoreHorizontal size={20} />
-          </button>
-          
-          <OptionsMenu 
-            isOpen={optionsMenuOpen} 
-            onEdit={handleEdit} 
-            onDelete={showDeleteConfirmation}
-            onClose={() => setOptionsMenuOpen(false)}
-          />
-        </div>
+        {isOwner && (
+          <div className="relative">
+            <button 
+              className="text-gray-400 hover:text-gray-300 cursor-pointer"
+              onClick={() => setOptionsMenuOpen(!optionsMenuOpen)}
+            >
+              <MoreHorizontal size={20} />
+            </button>
+            
+            <OptionsMenu 
+              isOpen={optionsMenuOpen} 
+              onEdit={handleEdit} 
+              onDelete={showDeleteConfirmation}
+              onClose={() => setOptionsMenuOpen(false)}
+            />
+          </div>
+        )}
       </div>
       
       <div className="mb-4">
         {isEditing ? (
           <EditPost
             post={{ 
-              content: postContent, 
-              image: postMediaType === 'image' ? postMedia : null,
-              video: postMediaType === 'video' ? postMedia : null,
+              description: post.description,
+              content: post.content,
+              contentType: post.contentType,
               emoji: postEmoji 
             }} 
             onSave={handleSaveEdit} 
@@ -139,36 +328,15 @@ const Post = ({ post, onDelete }) => {
           />
         ) : (
           <>
-            <p className="text-sm sm:text-base">{postContent}</p>
-            
-            {/* Mostrar imagen si existe */}
-            {postMediaType === 'image' && postMedia && (
-              <div className="mt-3 mb-3">
-                <img 
-                  src={postMedia} 
-                  alt="Imagen de la publicación"
-                  className="rounded-lg w-full h-auto object-cover" 
-                />
-              </div>
-            )}
-            
-            {/* Mostrar video si existe */}
-            {postMediaType === 'video' && postMedia && (
-              <div className="mt-3 mb-3">
-                <video 
-                  src={postMedia} 
-                  controls
-                  className="rounded-lg w-full h-auto" 
-                />
-              </div>
-            )}
+            <p className="text-sm sm:text-base">{post.description}</p>
+            {renderMediaContent()}
           </>
         )}
       </div>
       
       <div className="flex justify-between text-sm text-gray-400 mb-3">
-        <span>{likeCount} likes</span>
-        <span>{comments.length} comentarios</span>
+        <span>{likeCount} {likeCount === 1 ? 'like' : 'likes'}</span>
+        <span>{post._count?.comentarios || post.comments || 0} {(post._count?.comentarios || post.comments || 0) === 1 ? 'comentario' : 'comentarios'}</span>
       </div>
       
       <div className="flex justify-between pt-3 border-t border-gray-700">
@@ -202,6 +370,7 @@ const Post = ({ post, onDelete }) => {
         onClose={closeCommentsModal} 
         postId={post.id}
         comments={comments}
+        onCommentAdded={loadComments}
       />
       
       {/* Modal de confirmación de eliminación */}
@@ -209,7 +378,9 @@ const Post = ({ post, onDelete }) => {
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
-        postContent={postContent}
+        postContent={post.description}
+        isLoading={isDeleting}
+        error={deleteError}
       />
     </div>
   );
@@ -219,8 +390,21 @@ const Post = ({ post, onDelete }) => {
 const OptionsMenu = ({ onEdit, onDelete, isOpen, onClose }) => {
   if (!isOpen) return null;
   
+  // Manejar clics fuera del menú para cerrarlo
+  const handleOutsideClick = (e) => {
+    if (e.target.closest('.options-menu')) return;
+    onClose();
+  };
+  
+  React.useEffect(() => {
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, []);
+  
   return (
-    <div className="absolute right-0 top-8 bg-gray-800 rounded-md shadow-lg border border-gray-700 z-10">
+    <div className="options-menu absolute right-0 top-8 bg-gray-800 rounded-md shadow-lg border border-gray-700 z-10">
       <div className="py-1">
         <button 
           onClick={onEdit}
@@ -241,77 +425,4 @@ const OptionsMenu = ({ onEdit, onDelete, isOpen, onClose }) => {
   );
 };
 
-// Datos simulados de ejemplo con emoji
-const samplePost = {
-  id: '1',
-  user: {
-    name: 'Carlos Sánchez',
-    avatar: '/api/placeholder/40/40',
-    verified: true
-  },
-  content: '¡Qué hermoso día para programar y crear interfaces increíbles! 🚀💻 #ReactLife',
-  image: '/api/placeholder/600/400',
-  video: null,
-  emoji: { id: 'happy', emoji: '😀', label: 'Feliz' },
-  time: 'Hace 2 horas',
-  likes: 42,
-  shares: 5,
-  comments: [
-    {
-      id: '101',
-      user: {
-        name: 'María López',
-        avatar: '/api/placeholder/40/40',
-        verified: false
-      },
-      content: '¡Totalmente de acuerdo! El código limpio es una obra de arte 🎨',
-      time: 'Hace 1 hora'
-    },
-    {
-      id: '102',
-      user: {
-        name: 'Juan Pérez',
-        avatar: '/api/placeholder/40/40',
-        verified: true
-      },
-      content: '¿Qué proyecto estás desarrollando ahora?',
-      time: 'Hace 45 minutos'
-    }
-  ]
-};
-
-// Datos de ejemplo con video
-const videoSamplePost = {
-  id: '2',
-  user: {
-    name: 'Ana Martínez',
-    avatar: '/api/placeholder/40/40',
-    verified: false
-  },
-  content: 'Mirando este increíble tutorial sobre React y Tailwind CSS',
-  image: null,
-  video: '/api/video-placeholder.mp4', // Aquí debería ir una URL real a un video
-  emoji: { id: 'wow', emoji: '😮', label: 'Sorprendido' },
-  time: 'Hace 3 horas',
-  likes: 28,
-  shares: 7,
-  comments: []
-};
-
-// Componente de demostración
-const SocialMediaPostDemo = () => {
-  const handleDeletePost = (postId) => {
-    console.log(`Post con ID ${postId} eliminado`);
-    // Aquí irían las acciones reales para eliminar el post
-  };
-
-  return (
-    <div>
-      <Post post={samplePost} onDelete={handleDeletePost} />
-      <Post post={videoSamplePost} onDelete={handleDeletePost} />
-    </div>
-  );
-};
-
-export { Post, SocialMediaPostDemo };
-export default SocialMediaPostDemo;
+export default Post;
