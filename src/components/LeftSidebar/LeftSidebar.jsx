@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, User, Users, MessageCircle, Bookmark, Settings } from 'lucide-react';
+import { Home, User, Users, MessageCircle, Compass, Settings } from 'lucide-react';
 
 const LeftSidebar = () => {
   // Hook para obtener la ruta actual
@@ -18,10 +18,10 @@ const LeftSidebar = () => {
   const menuSections = [
     { icon: Home, name: 'Inicio', path: '/Dashboard' },
     { icon: User, name: 'Perfil', path: '/Profile' },
-    // { icon: Users, name: 'Amigos', path: '' }, // Ajusta esta ruta según tu estructura
-    { icon: MessageCircle, name: 'Mensajes', path: '/Chats' }, // Ajusta esta ruta según tu estructura
-    { icon: Bookmark, name: 'Favoritos', path: '' }, // Ajusta esta ruta según tu estructura
-    // { icon: Settings, name: 'Configuración', path: '' } // Ajusta esta ruta según tu estructura
+    // { icon: Users, name: 'Amigos', path: '' },
+    { icon: MessageCircle, name: 'Mensajes', path: '/Chats' },
+    { icon: Compass, name: 'Explorar', path: '/Explore' }, // Cambiado de Favoritos a Explorar
+    // { icon: Settings, name: 'Configuración', path: '' }
   ];
 
   return (

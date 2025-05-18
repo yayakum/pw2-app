@@ -5,6 +5,7 @@ import Dashboard from "../pages/Dashboard/Dashboard.jsx";
 import Register from "../pages/Register/Register.jsx";
 import Profile from "../pages/Profile/Profile.jsx";
 import Chats from "../pages/Chats/Chats.jsx";
+import Explore from "../pages/Explore/Explore.jsx";
 
 const AppRoutes = () => {
   return (
@@ -14,6 +15,7 @@ const AppRoutes = () => {
       <Route path="/Register" element={<Register/>}></Route>
       <Route path="/Profile" element={<Profile/>}></Route>
       <Route path="/Chats" element={<Chats/>}></Route>
+      <Route path="/Explore" element={<Explore/>}></Route>
     </Routes>
   );
 };
