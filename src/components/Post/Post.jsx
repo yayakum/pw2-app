@@ -1,15 +1,17 @@
 import React, { useState, useRef } from 'react';
-import { Bookmark, Heart, MessageCircle, Trash2, MoreHorizontal, Edit, X } from 'lucide-react';
+import { Bookmark, Heart, MessageCircle, Trash2, MoreHorizontal, Edit, X, Users } from 'lucide-react';
 import CommentsModal from '../Comment/Comment';
 import ConfirmationModal from '../ConfirmationModal/ConfirmationModal';
 import EditPost from '../EditPost/EditPost';
 import EmojiDisplay from '../EmojiDisplay/EmojiDisplay';
+import LikeList from '../LikeList/LikeList';
 
 // Componente principal Post con integración de modal de comentarios
 const Post = ({ post, onDelete }) => {
   // Estado para manejar likes
   const [liked, setLiked] = useState(post.hasLiked || false);
   const [likeCount, setLikeCount] = useState(post._count?.likes || post.likes || 0);
+  const [likeListOpen, setLikeListOpen] = useState(false);
 
   // Estado para el menú de opciones
   const [optionsMenuOpen, setOptionsMenuOpen] = useState(false);
@@ -28,6 +30,9 @@ const Post = ({ post, onDelete }) => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
+  
+  // Estado para indicar si estamos procesando el like
+  const [isLikeProcessing, setIsLikeProcessing] = useState(false);
 
   // Verificar si el usuario actual es el dueño de la publicación
   const [userData] = useState(() => {
@@ -39,19 +44,31 @@ const Post = ({ post, onDelete }) => {
 
   // Función para manejar likes
   const handleLike = async () => {
+    // Si ya estamos procesando un like, ignorar
+    if (isLikeProcessing) return;
+    
     try {
+      setIsLikeProcessing(true);
+      
+      // Obtener el token
       const token = localStorage.getItem('token');
       
       if (!token) {
         throw new Error('No hay token de autenticación');
       }
       
+      // Optimistic UI update - actualizar inmediatamente la UI para mejor experiencia
+      setLiked(!liked);
+      setLikeCount(liked ? likeCount - 1 : likeCount + 1);
+      
+      // Determinar la URL y método según el estado actual
       const url = liked 
         ? `http://localhost:3000/unlikePost/${post.id}`
         : `http://localhost:3000/likePost/${post.id}`;
       
       const method = liked ? 'DELETE' : 'POST';
       
+      // Realizar la petición al backend
       const response = await fetch(url, {
         method: method,
         headers: {
@@ -61,16 +78,27 @@ const Post = ({ post, onDelete }) => {
       });
       
       if (!response.ok) {
-        throw new Error('Error al procesar el like');
+        // Si hay error, revertir el cambio optimista
+        setLiked(liked);
+        setLikeCount(liked ? likeCount : likeCount - 1);
+        
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al procesar el like');
       }
       
-      // Actualizar el estado local
-      setLiked(!liked);
-      setLikeCount(liked ? likeCount - 1 : likeCount + 1);
+      // Obtener la respuesta y actualizar con el valor real del backend
+      const data = await response.json();
+      setLikeCount(data.likeCount);
       
     } catch (err) {
       console.error('Error handling like:', err);
-      // Mantener el estado anterior en caso de error
+      // Solo mostrar mensaje de error al usuario en caso de errores inesperados
+      if (err.message !== 'Ya has dado like a esta publicación' && 
+          err.message !== 'No has dado like a esta publicación') {
+        alert(`Error: ${err.message}`);
+      }
+    } finally {
+      setIsLikeProcessing(false);
     }
   };
 
@@ -127,7 +155,7 @@ const Post = ({ post, onDelete }) => {
   };
 
   // Función para guardar la edición
-  const handleSaveEdit = async (newContent, newEmoji) => {
+  const handleSaveEdit = async (updatedData) => {
     try {
       const token = localStorage.getItem('token');
       
@@ -135,22 +163,45 @@ const Post = ({ post, onDelete }) => {
         throw new Error('No hay token de autenticación');
       }
       
-      // Crear un objeto para enviar los datos
-      const postData = {
-        description: newContent
-      };
+      // Siempre usamos FormData para mantener consistencia con createPost
+      const formData = new FormData();
       
-      if (newEmoji) {
-        postData.emoji = JSON.stringify(newEmoji);
+      // Añadir datos básicos
+      formData.append('description', updatedData.description);
+      
+      if (updatedData.categoryId) {
+        formData.append('categoryId', updatedData.categoryId);
+      }
+      
+      // Manejar explícitamente el emoji
+      if (updatedData.emoji) {
+        formData.append('emoji', JSON.stringify(updatedData.emoji));
+      } else {
+        // Enviar una señal explícita para eliminar el emoji
+        formData.append('removeEmoji', 'true');
+      }
+      
+      // Añadir archivo multimedia si existe
+      if (updatedData.mediaFile) {
+        formData.append('file', updatedData.mediaFile);
+      }
+      
+      // Si el usuario eliminó el archivo multimedia, indicarlo
+      if (updatedData.removeMedia) {
+        formData.append('removeMedia', 'true');
+      }
+      
+      // Para depuración - mostrar las entradas del FormData
+      for (let [key, value] of formData.entries()) {
+        console.log(`${key}: ${value instanceof File ? `File object (${value.type})` : value}`);
       }
       
       const response = await fetch(`http://localhost:3000/updatePost/${post.id}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(postData)
+        body: formData
       });
       
       if (!response.ok) {
@@ -158,20 +209,19 @@ const Post = ({ post, onDelete }) => {
         throw new Error(errorData.error || 'Error al actualizar la publicación');
       }
       
-      // Actualizar el estado local con los datos de respuesta
       const updatedPost = await response.json();
-      
       setPostEmoji(updatedPost.emojiData || updatedPost.emoji);
+      
       setIsEditing(false);
       
-      // Recargar la publicación (Idealmente esto debería ser manejado a nivel de componente padre)
+      // Recargar la publicación
       if (onDelete) {
         setTimeout(() => onDelete("refresh"), 500);
       }
       
     } catch (err) {
       console.error('Error updating post:', err);
-      // Mantener el estado anterior en caso de error
+      alert(`Error al actualizar la publicación: ${err.message}`);
     }
   };
   
@@ -195,7 +245,7 @@ const Post = ({ post, onDelete }) => {
       }
       
       const data = await response.json();
-      setComments(data);
+      setComments(data.data || []); // Asegurar que estamos obteniendo el arreglo de comentarios
       
     } catch (err) {
       console.error('Error loading comments:', err);
@@ -251,6 +301,13 @@ const Post = ({ post, onDelete }) => {
     return null;
   };
 
+  // Función para mostrar el modal de likes
+  const showLikeList = () => {
+    if (likeCount > 0) {
+      setLikeListOpen(true);
+    }
+  };
+
   return (
     <div className="mb-6 p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md relative">
       <div className="flex items-start justify-between mb-4">
@@ -297,8 +354,12 @@ const Post = ({ post, onDelete }) => {
         {isEditing ? (
           <EditPost
             post={{ 
+              id: post.id,
               description: post.description,
-              emoji: postEmoji 
+              emoji: postEmoji,
+              content: post.content,
+              contentType: post.contentType,
+              categoryId: post.categoryId
             }} 
             onSave={handleSaveEdit} 
             onCancel={() => setIsEditing(false)} 
@@ -313,17 +374,35 @@ const Post = ({ post, onDelete }) => {
       </div>
       
       <div className="flex justify-between text-sm text-gray-400 mb-3">
-        <span>{likeCount} {likeCount === 1 ? 'like' : 'likes'}</span>
-        <span>{post._count?.comentarios || post.comments || 0} {(post._count?.comentarios || post.comments || 0) === 1 ? 'comentario' : 'comentarios'}</span>
+        <button 
+          onClick={showLikeList}
+          className={`hover:underline flex items-center ${likeCount > 0 ? 'cursor-pointer' : 'cursor-default'}`}
+        >
+          <span>
+            {likeCount} {likeCount === 1 ? 'like' : 'likes'}
+          </span>
+          {likeCount > 0 && (
+            <Users size={14} className="ml-1" />
+          )}
+        </button>
+        <button 
+          onClick={openCommentsModal}
+          className="hover:underline flex items-center cursor-pointer"
+        >
+          <span>{post._count?.comentarios || post.comments || 0} {(post._count?.comentarios || post.comments || 0) === 1 ? 'comentario' : 'comentarios'}</span>
+        </button>
       </div>
       
       <div className="flex justify-between pt-3 border-t border-gray-700">
         <button 
           onClick={handleLike}
+          disabled={isLikeProcessing}
           className={`flex items-center space-x-2 text-sm p-2 rounded-md hover:bg-gray-700 cursor-pointer ${
-            liked 
-              ? 'text-red-500 hover:text-red-600' 
-              : 'text-gray-300 hover:text-white'
+            isLikeProcessing 
+              ? 'opacity-50 cursor-not-allowed' 
+              : liked 
+                ? 'text-red-500 hover:text-red-600' 
+                : 'text-gray-300 hover:text-white'
           }`}
         >
           <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
@@ -359,6 +438,13 @@ const Post = ({ post, onDelete }) => {
         postContent={post.description}
         isLoading={isDeleting}
         error={deleteError}
+      />
+      
+      {/* Modal de lista de likes */}
+      <LikeList 
+        isOpen={likeListOpen}
+        onClose={() => setLikeListOpen(false)}
+        postId={post.id}
       />
     </div>
   );

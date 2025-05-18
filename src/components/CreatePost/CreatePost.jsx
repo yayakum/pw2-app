@@ -339,7 +339,7 @@ const CreatePost = ({ onPostCreated }) => {
         value={postText}
         onChange={(e) => setPostText(e.target.value)}
         placeholder="¿Qué descubriste hoy en el cosmos? (obligatorio)"
-        className={`w-full p-3 rounded-lg ${postText.trim() === '' ? 'bg-red-900 bg-opacity-10 border border-red-500' : 'bg-gray-700'} focus:outline-none focus:ring-2 focus:ring-purple-600 min-h-28`}
+        className={`w-full p-3 rounded-lg bg-gray-700 border-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-600 min-h-28`}
       />
       
       {/* Previsualización de imagen */}
