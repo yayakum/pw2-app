@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Heart, Users, ArrowLeft, ArrowRight } from 'lucide-react';
-
+import { useNavigate } from 'react-router-dom';
 const LikeList = ({ isOpen, onClose, postId }) => {
   const [likes, setLikes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -12,7 +12,7 @@ const LikeList = ({ isOpen, onClose, postId }) => {
     pages: 0
   });
   const [followStatus, setFollowStatus] = useState({}); // Para almacenar el estado de seguimiento
-
+const navigate = useNavigate();
   // Cargar likes cuando se abre el modal
   useEffect(() => {
     if (isOpen && postId) {
@@ -206,14 +206,15 @@ const LikeList = ({ isOpen, onClose, postId }) => {
     }
   };
 
+  
   // Si el modal no está abierto, no renderizar nada
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
+    <div className="fixed inset-0 z-50 flex items-center justify-center  backdrop-blur-sm shadow-2xl bg-opacity-50">
       <div className="bg-gray-800 rounded-lg w-full max-w-md overflow-hidden max-h-[80vh] flex flex-col">
         {/* Encabezado */}
-        <div className="flex justify-between items-center px-4 py-3 border-b border-gray-700 bg-gray-900">
+        <div className="flex justify-between items-center px-4 py-3 border-b border-gray-700 bg-gray-800">
           <div className="flex items-center">
             <Heart size={20} className="text-red-500 mr-2" />
             <h3 className="text-lg font-semibold text-white">Likes</h3>
@@ -221,7 +222,7 @@ const LikeList = ({ isOpen, onClose, postId }) => {
           </div>
           <button 
             onClick={onClose}
-            className="text-gray-400 hover:text-white"
+            className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700"
           >
             <X size={20} />
           </button>
@@ -257,6 +258,17 @@ const LikeList = ({ isOpen, onClose, postId }) => {
           {!loading && !error && likes.length > 0 && (
             <ul className="divide-y divide-gray-700">
               {likes.map(like => {
+                const getUserName = () => {
+                    return like.usuario?.username || "Usuario";
+                };
+
+                const handleProfileClick = () => {
+                  if (isCurrentUser ) {
+                  navigate(`/Profile`);
+                } else {
+                  navigate(`/profile/${like.userId}`);}
+                };
+
                 // Obtener el ID del usuario actual
                 const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id;
                 const isCurrentUser = like.usuario?.id === parseInt(currentUserId);
@@ -265,23 +277,13 @@ const LikeList = ({ isOpen, onClose, postId }) => {
                 const isFollowing = isCurrentUser ? false : (followStatus[like.usuario?.id] || false);
                 
                 return (
-                  <li key={like.id} className="py-3 px-4 hover:bg-gray-700 transition-colors">
+                  <li key={like.id} className="py-3 px-4  transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         {/* Avatar del usuario */}
-                        {like.usuario?.profilePic ? (
-                          <img 
-                            src={`data:image/jpeg;base64,${like.usuario.profilePic}`}
-                            alt={like.usuario.username}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-700">
-                            <span className="text-white font-bold">
-                              {like.usuario?.username ? like.usuario.username.charAt(0).toUpperCase() : 'U'}
-                            </span>
-                          </div>
-                        )}
+                        <div  className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500 cursor-pointer" onClick={handleProfileClick}>
+                        <span className="text-white font-bold">{getUserName().charAt(0).toUpperCase()}</span>
+                    </div>
                         
                         {/* Información del usuario */}
                         <div className="ml-3">

@@ -44,7 +44,7 @@ const LeftSidebar = () => {
           ))}
         </nav>
         
-        <div className="mt-6 pt-6 border-t border-gray-700">
+        {/* <div className="mt-6 pt-6 border-t border-gray-700">
           <h3 className="font-medium text-lg mb-4">Exploradores Activos</h3>
           <ul className="space-y-3">
             {activeUsers.map(user => (
@@ -57,7 +57,7 @@ const LeftSidebar = () => {
               </li>
             ))}
           </ul>
-        </div>
+        </div> */}
       </div>
     </aside>
   );

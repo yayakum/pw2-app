@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Send, Edit, Trash2, CheckCircle, MoreVertical, AlertCircle } from 'lucide-react';
-
+import { useNavigate } from 'react-router-dom';
 // Componente para editar un comentario
 const EditCommentForm = ({ comment, onSave, onCancel }) => {
   const [editedContent, setEditedContent] = useState(comment.content);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const textareaRef = useRef(null);
+  
 
   useEffect(() => {
     // Enfocar el textarea cuando se abre el formulario de edición
@@ -128,33 +129,27 @@ const Comment = ({ comment, onDelete, onEdit, currentUserId }) => {
     }
   };
 
-  // Obtener avatar del usuario
-  const getUserAvatar = () => {
-    if (comment.usuario && comment.usuario.profilePic) {
-      return `data:image/jpeg;base64,${comment.usuario.profilePic}`;
-    }
-    return '/api/placeholder/40/40';
-  };
-
   // Obtener nombre del usuario
   const getUserName = () => {
     return comment.usuario?.username || 'Usuario';
   };
+const navigate = useNavigate();
 
+  const handleProfileClick = () => {
+  if (currentUserId && comment.userId === parseInt(currentUserId)) {
+    navigate(`/Profile`);
+  } else {
+    navigate(`/Profile/${comment.userId}`);
+  }
+};
+
+  
   return (
-    <div className="py-3 border-b border-gray-700 last:border-0">
+    <div className="py-3 border-b border-b-gray-700 last:border-0">
       <div className="flex items-start space-x-3">
         {/* Avatar del usuario */}
-        <div className="w-8 h-8 rounded-full bg-purple-900 flex items-center justify-center border border-purple-500 overflow-hidden">
-          {comment.usuario?.profilePic ? (
-            <img
-              src={getUserAvatar()}
-              alt={`${getUserName()}'s avatar`}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <span className="text-white font-bold">{getUserName().charAt(0).toUpperCase()}</span>
-          )}
+        <div  className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500 cursor-pointer " onClick={handleProfileClick}>
+          <span className="text-white font-bold">{getUserName().charAt(0).toUpperCase()}</span>
         </div>
         
         <div className="flex-1">
@@ -229,7 +224,7 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
   const modalRef = useRef(null);
   const inputRef = useRef(null);
   const [currentUserId, setCurrentUserId] = useState(null);
-
+  
   // Cargar el ID del usuario actual
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -439,7 +434,7 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
   };
 
   return (
-    <div className="fixed inset-0 backdrop-blur-sm shadow-2xl flex items-center justify-center z-50 px-4 bg-black bg-opacity-50">
+    <div className="fixed inset-0 backdrop-blur-sm shadow-2xl flex items-center justify-center z-50 px-4 bg-opacity-50">
       <div 
         ref={modalRef}
         className="bg-gray-800 rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col"

@@ -24,7 +24,7 @@ const AstronautsList = ({ astronauts, loading, error, onRetry }) => {
         </div>
       )}
       
-      {/* Sin resultados */}
+      {/* Sin resultados
       {!loading && !error && (!astronauts || astronauts.length === 0) && (
         <div className="p-8 rounded-lg bg-gray-700 bg-opacity-60 text-center">
           <h3 className="text-xl font-medium mb-4">No se encontraron astronautas</h3>
@@ -32,7 +32,7 @@ const AstronautsList = ({ astronauts, loading, error, onRetry }) => {
             Intenta ajustar la búsqueda o busca algo diferente.
           </p>
         </div>
-      )}
+      )} */}
       
       {/* Lista de astronautas */}
 {!loading && !error && astronauts && astronauts.length > 0 && (

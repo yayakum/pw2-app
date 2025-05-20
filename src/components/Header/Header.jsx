@@ -6,6 +6,10 @@ import { useNavigate, Link } from 'react-router-dom';
 const Header = () => {
   const navigate = useNavigate();
   const [userData, setUserData] = useState(null);
+
+  const getUserName = () => {
+    return userData?.username || "Usuario";
+  };
   
   // Cargar datos del usuario desde localStorage cuando el componente se monta
   useEffect(() => {
@@ -36,18 +40,6 @@ const Header = () => {
             </Link>
           </div>
           
-          {/* Barra de búsqueda */}
-          <div className="hidden md:flex relative mx-4 flex-grow max-w-md">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none hover:scale-105 duration-300">
-              <Search size={18} className="text-gray-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="Buscar en el cosmos..."
-              className="w-full pl-10 pr-4 py-2 rounded-full bg-gray-700 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent hover:scale-105 duration-300"
-            />
-          </div>
-          
           {/* Iconos de navegación */}
           <div className="flex items-center space-x-4">
             <button>
@@ -55,15 +47,8 @@ const Header = () => {
             </button>
             
             <div className="relative group">
-              <Link to="/Profile" className="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-700 hover:scale-105 duration-300 cursor-pointer">
-                <img
-                  src="/neji.jfif"
-                  alt="Profile"
-                  className="w-8 h-8 rounded-full border-2 border-purple-500"
-                />
-                <span className="hidden md:inline text-sm text-gray-300">
-                  {userData ? userData.username : 'Usuario'}
-                </span>
+              <Link to="/Profile"  className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500 cursor-pointer hover:scale-105 duration-300">
+                <span className="text-white font-bold">{getUserName().charAt(0).toUpperCase()}</span>
               </Link>
             </div>
             

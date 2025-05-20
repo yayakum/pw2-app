@@ -6,6 +6,7 @@ import Register from "../pages/Register/Register.jsx";
 import Profile from "../pages/Profile/Profile.jsx";
 import Chats from "../pages/Chats/Chats.jsx";
 import Explore from "../pages/Explore/Explore.jsx";
+import ProfileUserFind from "../pages/ProfileUserFind/ProfileUserFind.jsx";
 
 const AppRoutes = () => {
   return (
@@ -16,6 +17,7 @@ const AppRoutes = () => {
       <Route path="/Profile" element={<Profile/>}></Route>
       <Route path="/Chats" element={<Chats/>}></Route>
       <Route path="/Explore" element={<Explore/>}></Route>
+      <Route path="/Profile/:userId" element={<ProfileUserFind />} />
     </Routes>
   );
 };

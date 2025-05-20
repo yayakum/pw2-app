@@ -448,7 +448,7 @@ const Dashboard = () => {
         {/* Sidebar derecho */}
         <aside className="w-full md:w-1/4 md:pl-4 hidden md:block">
           <div className="sticky top-24">
-            <div className="p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md mb-6">
+            {/* <div className="p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md mb-6">
               <h3 className="font-medium text-lg mb-4">Eventos Cósmicos</h3>
               <div className="space-y-4">
                 <div className="p-3 rounded-md bg-gray-700 hover:bg-gray-600 transition cursor-pointer">
@@ -460,7 +460,7 @@ const Dashboard = () => {
                   <p className="text-sm text-gray-300 mt-1">Mañana a las 19:00 - 532 asistentes</p>
                 </div>
               </div>
-            </div>
+            </div> */}
             
             <div className="p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md">
               <h3 className="font-medium text-lg mb-4">Exploradores Sugeridos</h3>

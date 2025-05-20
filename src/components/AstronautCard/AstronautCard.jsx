@@ -1,36 +1,48 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Star } from 'lucide-react';
+import { User } from 'lucide-react';
 
 const AstronautCard = ({ astronaut, isProfile = false }) => {
     const navigate = useNavigate();
     const [isFollowing, setIsFollowing] = useState(astronaut.isFollowing || false);
 
+    const getUserName = () => {
+        return astronaut?.username || "Usuario";
+    };
+
     // Función para manejar el seguimiento
     const handleFollow = async (e) => {
-        e.stopPropagation();
-        try {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                throw new Error('No hay token de autenticación');
-            }
-            const response = await fetch(`http://localhost:3000/followUser/${astronaut.id}`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error('Error al seguir/dejar de seguir al usuario');
-            }
-            
-            setIsFollowing(!isFollowing);
-        } catch (error) {
-            console.error('Error:', error);
+    e.stopPropagation();
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            throw new Error('No hay token de autenticación');
         }
-    };
+        
+        // Usar la URL y método adecuados según el estado actual
+        const url = isFollowing 
+            ? `http://localhost:3000/unfollowUser/${astronaut.id}`
+            : `http://localhost:3000/followUser/${astronaut.id}`;
+            
+        const method = isFollowing ? 'DELETE' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Error al seguir/dejar de seguir al usuario');
+        }
+        
+        setIsFollowing(!isFollowing);
+    } catch (error) {
+        console.error('Error:', error);
+    }
+};
     
     // Navegar al perfil del astronauta
     const navigateToProfile = () => {
@@ -38,26 +50,14 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
     };
 
     // Obtener iniciales para usar como avatar si no hay imagen
-    const getInitials = (username) => {
-        return username ? username.charAt(0).toUpperCase() : 'A';
-    };
 
     return (
         <div className="bg-gray-800 bg-opacity-80 rounded-lg p-4 shadow-lg mb-3 w-full">
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                    {/* Avatar con color fijo */}
-                    {astronaut.profilePic ? (
-                        <img 
-                            src={`data:image/jpeg;base64,${astronaut.profilePic}`} 
-                            alt={`${astronaut.username || 'Astronauta'}`} 
-                            className="w-12 h-12 rounded-full"
-                        />
-                    ) : (
-                        <div className="w-12 h-12 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500">
-                            <span className="text-white font-bold">{getInitials(astronaut.username)}</span>
-                        </div>
-                    )}
+                    <div  className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500 cursor-pointer">
+                        <span className="text-white font-bold">{getUserName().charAt(0).toUpperCase()}</span>
+                    </div>
                     
                     {/* Información del usuario */}
                     <div>
@@ -68,18 +68,8 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
                                     ? new Date(astronaut.createdAt).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
                                     : 'marzo de 2025'}
                             </span>
-                            
-                            {astronaut.followers !== undefined && (
-                                <div className="flex items-center">
-                                    <Star size={14} className="text-yellow-400 mr-1" />
-                                    <span>
-                                        {astronaut.followers} {astronaut.followers === 1 ? 'seguidor' : 'seguidores'}
-                                    </span>
-                                </div>
-                            )}
                         </div>
-                        
-                        {/* Bio si existe */}
+
                         {astronaut.bio && (
                             <p className="text-sm text-gray-300 mt-1">{astronaut.bio}</p>
                         )}
@@ -97,7 +87,7 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
                                     : 'bg-purple-600 text-white hover:bg-purple-700'
                             }`}
                         >
-                            {isFollowing ? 'Siguiendo' : 'Seguir'}
+                            {isFollowing ? 'Dejar de seguir' : 'Seguir'}
                         </button>
                     )}
                     

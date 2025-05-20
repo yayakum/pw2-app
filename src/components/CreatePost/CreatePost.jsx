@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Image, Video, Smile, Tag, X, Check } from 'lucide-react';
 import EmojiDisplay from '../EmojiDisplay/EmojiDisplay';
+import { useNavigate } from 'react-router-dom';
 
-const CreatePost = ({ onPostCreated }) => {
+const CreatePost = ({onPostCreated }) => {
   const [userData, setUserData] = useState(null);
   const [postText, setPostText] = useState('');
   const [mediaType, setMediaType] = useState(null); // 'image', 'video', o null
@@ -15,6 +16,14 @@ const CreatePost = ({ onPostCreated }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  const navigate = useNavigate();
+  const getUserName = () => {
+        return userData?.username || "Usuario";
+    };
+
+    const handleProfileClick = () => {
+    navigate(`/Profile`);
+  };
 
   // Cargar datos del usuario desde localStorage cuando el componente se monta
   useEffect(() => {
@@ -273,15 +282,14 @@ const CreatePost = ({ onPostCreated }) => {
       setIsSubmitting(false);
     }
   };
+  
 
   return (
     <div className="mb-6 p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md">
       <div className="flex items-center space-x-3 mb-4">
-        <img
-          src={userData?.profilePic ? `data:image/jpeg;base64,${userData.profilePic}` : "/api/placeholder/50/50"}
-          alt="User avatar"
-          className="w-12 h-12 rounded-full border-2 border-purple-500"
-        />
+        <div  className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500 cursor-pointer" onClick={handleProfileClick}>
+          <span className="text-white font-bold">{getUserName().charAt(0).toUpperCase()}</span>
+        </div>
         <div className="flex items-center flex-wrap">
           <span className="text-gray-300 font-medium">
             {userData ? userData.username : 'Usuario'}

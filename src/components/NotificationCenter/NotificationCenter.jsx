@@ -317,22 +317,22 @@ const NotificationCenter = () => {
   };
 
   // Manejar clic en notificación para ir a la publicación
-  const handleNotificationClick = (notification) => {
-    // Si la notificación tiene un ID de publicación, navegar a ella
-    if (notification.postId) {
-      // Marcar como leída primero
-      if (!notification.isRead) {
-        markAsRead(notification.id);
-      }
+  // const handleNotificationClick = (notification) => {
+  //   // Si la notificación tiene un ID de publicación, navegar a ella
+  //   if (notification.postId) {
+  //     // Marcar como leída primero
+  //     if (!notification.isRead) {
+  //       markAsRead(notification.id);
+  //     }
       
-      // Cerrar el menú de notificaciones
-      setIsOpen(false);
+  //     // Cerrar el menú de notificaciones
+  //     setIsOpen(false);
       
-      // Navegar a la publicación (implementar según la estructura de tu aplicación)
-      // Por ejemplo:
-      window.location.href = `/post/${notification.postId}`;
-    }
-  };
+  //     // Navegar a la publicación (implementar según la estructura de tu aplicación)
+  //     // Por ejemplo:
+  //     window.location.href = `/post/${notification.postId}`;
+  //   }
+  // };
 
   return (
     <div className="relative inline-block">

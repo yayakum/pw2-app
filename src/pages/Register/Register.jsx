@@ -34,64 +34,68 @@ const Register = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccessMessage("");
+  e.preventDefault();
+  setError("");
+  setSuccessMessage("");
+  
+  // Validaciones básicas
+  if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
+    setError("Todos los campos son obligatorios");
+    return;
+  }
+  
+  if (formData.password !== formData.confirmPassword) {
+    setError("Las contraseñas no coinciden");
+    return;
+  }
+  
+  setIsLoading(true);
+  
+  try {
+    // Crear FormData para enviar archivos
+    const formDataToSend = new FormData();
+    formDataToSend.append('username', formData.username);
+    formDataToSend.append('email', formData.email);
+    formDataToSend.append('password', formData.password);
     
-    // Validaciones básicas
-    if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
-      setError("Todos los campos son obligatorios");
-      return;
+    // Si hay una imagen seleccionada, añadirla al FormData
+    const fileInput = document.querySelector('input[type="file"]');
+    if (fileInput.files[0]) {
+      formDataToSend.append('profilePic', fileInput.files[0]);
     }
     
-    if (formData.password !== formData.confirmPassword) {
-      setError("Las contraseñas no coinciden");
-      return;
+    const response = await fetch('http://localhost:3000/register', {
+      method: 'POST',
+      // No incluir el Content-Type header cuando se envía FormData
+      body: formDataToSend,
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error || "Error al registrar usuario");
     }
     
-    setIsLoading(true);
+    setSuccessMessage(data.message || "¡Registro exitoso! Redirigiendo al inicio de sesión...");
+    setFormData({
+      username: "",
+      email: "",
+      password: "",
+      confirmPassword: ""
+    });
+    setPreviewImage(null);
     
-    try {
-      // Solo enviar username, email y password al backend
-      const userData = {
-        username: formData.username,
-        email: formData.email,
-        password: formData.password
-      };
-      
-      const response = await fetch('http://localhost:3000/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || "Error al registrar usuario");
-      }
-      
-      setSuccessMessage(data.message || "¡Registro exitoso! Redirigiendo al inicio de sesión...");
-      setFormData({
-        username: "",
-        email: "",
-        password: "",
-        confirmPassword: ""
-      });
-      
-      // Redirigir al login después de un breve retraso
-      setTimeout(() => {
-        navigate('/');
-      }, 2000);
-    } catch (err) {
-      setError(err.message || "Error al procesar la solicitud");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // Redirigir al login después de un breve retraso
+    setTimeout(() => {
+      navigate('/');
+    }, 2000);
+  } catch (err) {
+    setError(err.message || "Error al procesar la solicitud");
+    console.error(err);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-black pt-10 pb-10">

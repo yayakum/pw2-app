@@ -5,6 +5,7 @@ import ConfirmationModal from '../ConfirmationModal/ConfirmationModal';
 import EditPost from '../EditPost/EditPost';
 import EmojiDisplay from '../EmojiDisplay/EmojiDisplay';
 import LikeList from '../LikeList/LikeList';
+import { useNavigate } from 'react-router-dom';
 
 // Componente principal Post con integración de modal de comentarios
 const Post = ({ post, onDelete }) => {
@@ -12,7 +13,7 @@ const Post = ({ post, onDelete }) => {
   const [liked, setLiked] = useState(post.hasLiked || false);
   const [likeCount, setLikeCount] = useState(post._count?.likes || post.likes || 0);
   const [likeListOpen, setLikeListOpen] = useState(false);
-
+  const navigate = useNavigate();
   // Estado para el menú de opciones
   const [optionsMenuOpen, setOptionsMenuOpen] = useState(false);
 
@@ -41,6 +42,13 @@ const Post = ({ post, onDelete }) => {
   });
   
   const isOwner = userData && parseInt(userData.id) === parseInt(post.userId);
+
+  const handleProfileClick = () => {
+    if (isOwner ) {
+    navigate(`/Profile`);
+  } else {
+    navigate(`/profile/${post.userId}`);}
+  };
 
   // Función para manejar likes
   const handleLike = async () => {
@@ -261,7 +269,7 @@ const Post = ({ post, onDelete }) => {
 
   // Obtener nombre de usuario
   const getUserName = () => {
-    return post.user?.name || post.usuario?.username || "Usuario";
+    return post.usuario?.username || "Usuario";
   };
 
   // Renderiza el contenido multimedia según el tipo
@@ -313,9 +321,24 @@ const Post = ({ post, onDelete }) => {
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
           {/* Imagen de avatar reemplazada por un div de placeholder fijo */}
-          <div className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500">
+          {/* <div className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500 cursor-pointer"  onClick={handleProfileClick}>
+            
             <span className="text-white font-bold">{getUserName().charAt(0).toUpperCase()}</span>
-          </div>
+          </div> */}
+          <div 
+  className="w-10 h-10 rounded-full flex items-center justify-center border-2 bg-purple-900 border-purple-500 cursor-pointer overflow-hidden"
+  onClick={handleProfileClick}
+>
+  {(post.usuario?.profilePic || post.profilePic) ? (
+    <img 
+      src={`data:image;base64,${post.usuario?.profilePic || post.profilePic}`} 
+      alt={`${getUserName()} avatar`}
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <span className="text-white font-bold">{getUserName().charAt(0).toUpperCase()}</span>
+  )}
+</div>
           
           <div>
             <div className="flex items-center flex-wrap">

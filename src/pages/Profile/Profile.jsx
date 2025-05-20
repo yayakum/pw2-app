@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../components/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar/LeftSidebar';
-import { Edit, Users, MessageCircle, Info, Bookmark, Image } from 'lucide-react';
+import { Edit, Users, MessageCircle, Info, Bookmark, Image, UserPlus } from 'lucide-react';
 import CreatePost from '../../components/CreatePost/CreatePost';
 import PostsList from '../../components/PostList/PostList';
 import UserEdit from '../../components/UserEdit/UserEdit';
 import MediaGallery from '../../components/MediaGallery/MediaGallery';
+import AstronautsList from '../../components/AstronautsList/AstronautsList';
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('posts');
@@ -14,7 +15,8 @@ const Profile = () => {
     username: "Cargando...",
     email: "Cargando...",
     joinDate: "Cargando...",
-    friends: []
+    followers: 0,
+    following: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,6 +27,15 @@ const Profile = () => {
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [postsError, setPostsError] = useState(null);
   const [refreshPosts, setRefreshPosts] = useState(0); // Para forzar la recarga
+
+  // Estados para seguidores y seguidos
+  const [followers, setFollowers] = useState([]);
+  const [following, setFollowing] = useState([]);
+  const [loadingFollowers, setLoadingFollowers] = useState(false);
+  const [loadingFollowing, setLoadingFollowing] = useState(false);
+  const [followersError, setFollowersError] = useState(null);
+  const [followingError, setFollowingError] = useState(null);
+  const [refreshFollow, setRefreshFollow] = useState(0); // Para forzar la recarga
 
   // Función para formatear la fecha y hora en formato "hace X tiempo"
   const formatTimestamp = (timestamp) => {
@@ -85,7 +96,8 @@ const Profile = () => {
           ...profileData,
           username: profileData.username || storedUser.username,
           joinDate: formattedJoinDate,
-          friends: profileData._count?.seguidores || 0
+          followers: profileData._count?.seguidores || 0,
+          following: profileData._count?.siguiendo || 0
         });
         
         setLoading(false);
@@ -188,11 +200,150 @@ const Profile = () => {
     }
   }, [loading, refreshPosts]);
 
-  const initialUserData = {
-    name: userData.username,
-    email: userData.email,
-    birthDate: userData.birthDate || '1990-01-01'
+  // Cargar seguidores
+  useEffect(() => {
+    const fetchFollowers = async () => {
+    
+    setLoadingFollowers(true);
+    setFollowersError(null);
+    
+    try {
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const token = localStorage.getItem('token');
+      
+      if (!token || !storedUser.id) {
+        throw new Error('No se encontró información de usuario necesaria');
+      }
+      
+      const response = await fetch(`http://localhost:3000/getUserFollowers/${storedUser.id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al obtener seguidores');
+      }
+      
+      const responseData = await response.json();
+      
+      // Depurar la respuesta para ver qué estamos recibiendo
+      console.log('Respuesta de seguidores:', responseData);
+      
+      if (responseData.data && Array.isArray(responseData.data)) {
+        // Actualizar el contador de seguidores para mantener la consistencia
+        const followerCount = responseData.pagination?.total || responseData.data.length;
+        
+        // Actualizar el valor de userData para reflejar el conteo real
+        setUserData(prevData => ({
+          ...prevData,
+          followers: followerCount
+        }));
+        
+        // Formatear los datos para el componente AstronautsList
+        const formattedFollowers = responseData.data.map(follower => ({
+          id: follower.seguidor.id,
+          username: follower.seguidor.username,
+          profilePic: follower.seguidor.profilePic,
+          bio: follower.seguidor.bio,
+          isFollowing: follower.seguidor.isFollowing,
+          createdAt: follower.createdAt
+        }));
+        
+        setFollowers(formattedFollowers);
+        console.log('Seguidores formateados:', formattedFollowers);
+      } else {
+        throw new Error('Formato de datos inesperado');
+      }
+    } catch (err) {
+      console.error('Error fetching followers:', err);
+      setFollowersError(err.message || 'Error al cargar seguidores');
+    } finally {
+      setLoadingFollowers(false);
+    }
   };
+  
+  if (!loading) {
+    fetchFollowers();
+  }
+}, [loading, activeTab, refreshFollow]);
+
+  // Cargar seguidos
+  useEffect(() => {
+  const fetchFollowing = async () => {
+    
+    setLoadingFollowing(true);
+    setFollowingError(null);
+    
+    try {
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const token = localStorage.getItem('token');
+      
+      if (!token || !storedUser.id) {
+        throw new Error('No se encontró información de usuario necesaria');
+      }
+      
+      const response = await fetch(`http://localhost:3000/getUserFollowing/${storedUser.id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al obtener usuarios seguidos');
+      }
+      
+      const responseData = await response.json();
+      console.log('Respuesta de seguidos:', responseData);
+      
+      if (responseData.data && Array.isArray(responseData.data)) {
+        // Actualizar el contador de seguidos para mantener la consistencia
+        const followingCount = responseData.pagination?.total || responseData.data.length;
+        
+        // Actualizar el valor de userData para reflejar el conteo real
+        setUserData(prevData => ({
+          ...prevData,
+          following: followingCount
+        }));
+        
+        // Formatear los datos para el componente AstronautsList
+        const formattedFollowing = responseData.data.map(follow => ({
+          id: follow.seguido.id,
+          username: follow.seguido.username,
+          profilePic: follow.seguido.profilePic,
+          bio: follow.seguido.bio,
+          isFollowing: follow.seguido.isFollowing || true,
+          createdAt: follow.createdAt
+        }));
+        
+        setFollowing(formattedFollowing);
+        console.log('Seguidos formateados:', formattedFollowing);
+      } else {
+        throw new Error('Formato de datos inesperado');
+      }
+    } catch (err) {
+      console.error('Error fetching following:', err);
+      setFollowingError(err.message || 'Error al cargar usuarios seguidos');
+    } finally {
+      setLoadingFollowing(false);
+    }
+  };
+  
+  if (!loading) {
+    fetchFollowing();
+  }
+}, [loading, activeTab, refreshFollow]);
+
+  const initialUserData = {
+  name: userData.username,
+  email: userData.email,
+  bio: userData.bio || '',
+  profilePic: userData.profilePic
+};
 
   // Manejar la creación de una nueva publicación
   const handlePostCreated = () => {
@@ -211,6 +362,11 @@ const Profile = () => {
     // Si es un ID específico, eliminamos esa publicación del estado
     setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
     setMediaPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+  };
+  
+  // Manejar actualización de seguidores/seguidos
+  const handleFollowUpdate = () => {
+    setRefreshFollow(prev => prev + 1);
   };
 
   // Renderizar el contenido según la pestaña activa
@@ -273,53 +429,92 @@ const Profile = () => {
               </div>
 
               <div>
+                <h4 className="text-gray-400 text-sm">Biografía</h4>
+                <p>{userData.bio}</p>
+              </div>
+
+              <div>
                 <h4 className="text-gray-400 text-sm">Se unió</h4>
                 <p>{userData.joinDate}</p>
               </div>
             </div>
           </div>
         );
-      case 'friends':
+        
+      case 'followers':
         return (
-          <div className="p-4 bg-gray-800 rounded-lg shadow-md">
-            <h3 className="text-lg font-medium mb-4">Seguidores ({userData.friends})</h3>
-            {userData.friends > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Aquí iría un map de los amigos cuando tengamos esa información */}
-                <p>No hay información disponible sobre seguidores</p>
+          <div>
+            <h3 className="text-lg font-medium mb-4">Seguidores ({userData.followers})</h3>
+            {followers.length != 0 && (
+            <AstronautsList 
+              astronauts={followers} 
+              loading={loadingFollowers} 
+              error={followersError} 
+              onRetry={() => setRefreshFollow(prev => prev + 1)}
+            />
+            )}
+            
+            {!loadingFollowers && !followersError && followers.length === 0 && (
+              <div className="p-6 bg-gray-800 bg-opacity-60 rounded-lg text-center">
+                <h3 className="text-xl font-medium mb-3">Aún no tienes seguidores</h3>
+                <p className="text-gray-400">
+                  Cuando alguien te siga, aparecerá en esta lista.
+                </p>
               </div>
-            ) : (
-              <p>Aún no tienes seguidores</p>
+            )}
+          </div>
+        );
+        
+      case 'following':
+        return (
+          <div>
+            <h3 className="text-lg font-medium mb-4">Seguidos ({userData.following})</h3>
+            {following.length != 0 && (
+            <AstronautsList 
+              astronauts={following} 
+              loading={loadingFollowing} 
+              error={followingError} 
+              onRetry={() => setRefreshFollow(prev => prev + 1)}
+            />
+            )}
+            
+            {!loadingFollowing && !followingError && following.length === 0 && (
+              <div className="p-6 bg-gray-800 bg-opacity-60 rounded-lg text-center">
+                <h3 className="text-xl font-medium mb-3">No sigues a nadie todavía</h3>
+                <p className="text-gray-400">
+                  Los usuarios que sigas aparecerán en esta lista.
+                </p>
+              </div>
             )}
           </div>
         );
 
-        case 'multimedia':
-          return (
-            <div className="space-y-4">
-              {loadingPosts && (
-                <div className="flex justify-center items-center p-6 bg-gray-800 bg-opacity-60 rounded-lg">
-                  <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-500"></div>
-                  <span className="ml-3">Cargando multimedia...</span>
-                </div>
-              )}
-              
-              {!loadingPosts && !postsError && (
-                <div className="p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md">
-                  <h3 className="text-lg font-medium mb-2">Galería Multimedia</h3>
-                  <p className="text-sm text-gray-400 mb-4">
-                    {mediaPosts.length === 0 
-                      ? "Aún no tienes contenido multimedia. Cuando subas fotos o videos aparecerán aquí." 
-                      : `Mostrando ${mediaPosts.length} elemento${mediaPosts.length !== 1 ? 's' : ''} multimedia.`
-                    }
-                  </p>
-                  
-                  {/* Usando el nuevo componente MediaGallery */}
-                  <MediaGallery mediaPosts={mediaPosts} />
-                </div>
-              )}
-            </div>
-        );
+      case 'multimedia':
+        return (
+          <div className="space-y-4">
+            {loadingPosts && (
+              <div className="flex justify-center items-center p-6 bg-gray-800 bg-opacity-60 rounded-lg">
+                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-500"></div>
+                <span className="ml-3">Cargando multimedia...</span>
+              </div>
+            )}
+            
+            {!loadingPosts && !postsError && (
+              <div className="p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md">
+                <h3 className="text-lg font-medium mb-2">Galería Multimedia</h3>
+                <p className="text-sm text-gray-400 mb-4">
+                  {mediaPosts.length === 0 
+                    ? "Aún no tienes contenido multimedia. Cuando subas fotos o videos aparecerán aquí." 
+                    : `Mostrando ${mediaPosts.length} elemento${mediaPosts.length !== 1 ? 's' : ''} multimedia.`
+                  }
+                </p>
+                
+                {/* Usando el componente MediaGallery */}
+                <MediaGallery mediaPosts={mediaPosts} />
+              </div>
+            )}
+          </div>
+      );
 
       case 'favorites':
         // Podríamos implementar una pestaña para mostrar publicaciones guardadas o con "me gusta"
@@ -379,7 +574,7 @@ const Profile = () => {
           <div className="bg-gray-800 rounded-lg shadow-md p-6">
             <div className="flex flex-col sm:flex-row sm:items-center relative">
               {/* Avatar como elemento de texto */}
-              <div className="w-24 h-24 rounded-full bg-purple-700 flex items-center justify-center border-4 border-purple-500 mb-4 sm:mb-0">
+              <div className="w-24 h-24 rounded-full bg-purple-900 flex items-center justify-center border-4 border-purple-500 mb-4 sm:mb-0">
                 <span className="text-white text-4xl font-bold">
                   {userData.username ? userData.username.charAt(0).toUpperCase() : 'U'}
                 </span>
@@ -388,14 +583,22 @@ const Profile = () => {
               <div className="ml-0 sm:ml-6">
                 <h2 className="text-2xl font-semibold">{userData.username}</h2>
                 <p className="text-gray-400">Miembro desde {userData.joinDate}</p>
-                <div className="mt-2 flex flex-wrap gap-2">
+                <div className="mt-2 flex flex-wrap gap-3">
                   <div className="flex items-center text-sm text-gray-400">
                     <MessageCircle size={16} className="mr-1" />
                     <span>{posts.length} publicaciones</span>
                   </div>
                   <div className="flex items-center text-sm text-gray-400">
+                    <Users size={16} className="mr-1" />
+                    <span>{userData.followers} seguidores</span>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-400">
+                    <UserPlus size={16} className="mr-1" />
+                    <span>{userData.following} seguidos</span>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-400">
                     <Image size={16} className="mr-1" />
-                    <span>{mediaPosts.length} elementos multimedia</span>
+                    <span>{mediaPosts.length} multimedia</span>
                   </div>
                 </div>
               </div>
@@ -426,11 +629,18 @@ const Profile = () => {
               Información
             </button>
             <button 
-              className={`px-4 py-2 rounded-lg text-white flex items-center transition-colors ${activeTab === 'friends' ? 'bg-gradient-to-r from-blue-900 via-purple-900 to-blue-900 bg-opacity-100' : 'bg-gray-800 hover:bg-gray-700'} cursor-pointer`}
-              onClick={() => setActiveTab('friends')}
+              className={`px-4 py-2 rounded-lg text-white flex items-center transition-colors ${activeTab === 'followers' ? 'bg-gradient-to-r from-blue-900 via-purple-900 to-blue-900 bg-opacity-100' : 'bg-gray-800 hover:bg-gray-700'} cursor-pointer`}
+              onClick={() => setActiveTab('followers')}
             >
               <Users size={16} className="mr-2" />
-              Amigos
+              Seguidores
+            </button>
+            <button 
+              className={`px-4 py-2 rounded-lg text-white flex items-center transition-colors ${activeTab === 'following' ? 'bg-gradient-to-r from-blue-900 via-purple-900 to-blue-900 bg-opacity-100' : 'bg-gray-800 hover:bg-gray-700'} cursor-pointer`}
+              onClick={() => setActiveTab('following')}
+            >
+              <UserPlus size={16} className="mr-2" />
+              Seguidos
             </button>
             <button 
               className={`px-4 py-2 rounded-lg text-white flex items-center transition-colors ${activeTab === 'multimedia' ? 'bg-gradient-to-r from-blue-900 via-purple-900 to-blue-900 bg-opacity-100' : 'bg-gray-800 hover:bg-gray-700'} cursor-pointer`}
