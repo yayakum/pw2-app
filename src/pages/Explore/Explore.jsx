@@ -4,6 +4,7 @@ import Header from '../../components/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar/LeftSidebar';
 import PostsList from '../../components/PostList/PostList';
 import AstronautsList from '../../components/AstronautsList/AstronautsList';
+const backendURL = import.meta.env.VITE_BACKEND_URL;
 
 const Explore = () => {
   // Estado para manejar la pestaña activa
@@ -26,7 +27,7 @@ const Explore = () => {
   // Función para obtener categorías
   const fetchCategories = async () => {
     try {
-      const response = await fetch('http://localhost:3000/getAllCategories');
+      const response = await fetch(`${backendURL}/getAllCategories`);
       
       if (!response.ok) {
         throw new Error('Error al obtener las categorías');
@@ -51,7 +52,7 @@ const Explore = () => {
         throw new Error('No hay token de autenticación');
       }
       
-      let url = 'http://localhost:3000/getExplorePosts';
+      let url = `${backendURL}/getExplorePosts`;
       
       // Añadir parámetros de filtro si es necesario
       const params = new URLSearchParams();
@@ -133,7 +134,7 @@ const fetchAstronauts = async () => {
     }
     
     // Construir URL con parámetro de búsqueda si existe
-    let url = 'http://localhost:3000/getAllUsersExceptCurrent';
+    let url = `${backendURL}/getAllUsersExceptCurrent`;
     
     if (searchQuery.trim()) {
       url += `?search=${encodeURIComponent(searchQuery.trim())}`;

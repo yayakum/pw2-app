@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User } from 'lucide-react';
-
+const backendURL = import.meta.env.VITE_BACKEND_URL;
 const AstronautCard = ({ astronaut, isProfile = false }) => {
     const navigate = useNavigate();
     const [isFollowing, setIsFollowing] = useState(astronaut.isFollowing || false);
@@ -34,8 +34,8 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
                 const isCurrentUser = astronaut.id === parseInt(currentUserId);
                 
                 const url = isCurrentUser 
-                    ? 'http://localhost:3000/profile'
-                    : `http://localhost:3000/profile/${astronaut.id}`;
+                    ? `${backendURL}/profile`
+                    : `${backendURL}/${astronaut.id}`;
 
                 const response = await fetch(url, {
                     method: 'GET',
@@ -70,8 +70,8 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
             
             // Usar la URL y método adecuados según el estado actual
             const url = isFollowing 
-                ? `http://localhost:3000/unfollowUser/${astronaut.id}`
-                : `http://localhost:3000/followUser/${astronaut.id}`;
+                ? `${backendURL}/unfollowUser/${astronaut.id}`
+                : `${backendURL}/followUser/${astronaut.id}`;
                 
             const method = isFollowing ? 'DELETE' : 'POST';
             

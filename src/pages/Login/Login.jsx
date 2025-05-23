@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { User, Lock } from 'lucide-react';
 import { useNavigate, Link } from "react-router-dom";
+const backendURL = import.meta.env.VITE_BACKEND_URL;
 
 const Login = () => {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      const response = await fetch('http://localhost:3000/login', {
+      const response = await fetch(`${backendURL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

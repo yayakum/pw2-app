@@ -6,6 +6,7 @@ import EditPost from '../EditPost/EditPost';
 import EmojiDisplay from '../EmojiDisplay/EmojiDisplay';
 import LikeList from '../LikeList/LikeList';
 import { useNavigate } from 'react-router-dom';
+const backendURL = import.meta.env.VITE_BACKEND_URL;
 
 // Componente principal Post con integración de modal de comentarios
 const Post = ({ post, onDelete }) => {
@@ -71,8 +72,8 @@ const Post = ({ post, onDelete }) => {
       
       // Determinar la URL y método según el estado actual
       const url = liked 
-        ? `http://localhost:3000/unlikePost/${post.id}`
-        : `http://localhost:3000/likePost/${post.id}`;
+        ? `${backendURL}/unlikePost/${post.id}`
+        : `${backendURL}/likePost/${post.id}`;
       
       const method = liked ? 'DELETE' : 'POST';
       
@@ -134,7 +135,7 @@ const Post = ({ post, onDelete }) => {
         throw new Error('No hay token de autenticación');
       }
       
-      const response = await fetch(`http://localhost:3000/deletePost/${post.id}`, {
+      const response = await fetch(`${backendURL}/deletePost/${post.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -204,7 +205,7 @@ const Post = ({ post, onDelete }) => {
         console.log(`${key}: ${value instanceof File ? `File object (${value.type})` : value}`);
       }
       
-      const response = await fetch(`http://localhost:3000/updatePost/${post.id}`, {
+      const response = await fetch(`${backendURL}/updatePost/${post.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -246,7 +247,7 @@ const Post = ({ post, onDelete }) => {
   // Función para cargar los comentarios de una publicación
   const loadComments = async () => {
     try {
-      const response = await fetch(`http://localhost:3000/getPostComments/${post.id}`);
+      const response = await fetch(`${backendURL}/getPostComments/${post.id}`);
       
       if (!response.ok) {
         throw new Error('Error al cargar los comentarios');

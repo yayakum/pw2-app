@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Image, Video, Smile, Tag, X, Check } from 'lucide-react';
 import EmojiDisplay from '../EmojiDisplay/EmojiDisplay';
 import { useNavigate } from 'react-router-dom';
-
+const backendURL = import.meta.env.VITE_BACKEND_URL;
 const CreatePost = ({onPostCreated }) => {
   const [userData, setUserData] = useState(null);
   const [postText, setPostText] = useState('');
@@ -35,7 +35,7 @@ const CreatePost = ({onPostCreated }) => {
     // Cargar categorías desde el backend
     const fetchCategories = async () => {
       try {
-        const response = await fetch('http://localhost:3000/getAllCategories');
+        const response = await fetch(`${backendURL}/getAllCategories`);
         if (!response.ok) {
           throw new Error('Error al obtener categorías');
         }
@@ -245,7 +245,7 @@ const CreatePost = ({onPostCreated }) => {
         console.log(`${key}: ${value instanceof File ? `File object (${value.type})` : value}`);
       }
       
-      const response = await fetch('http://localhost:3000/createPost', {
+      const response = await fetch(`${backendURL}/createPost`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

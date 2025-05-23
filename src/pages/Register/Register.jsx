@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { User, Lock, Mail, Calendar, UploadIcon, RocketIcon } from 'lucide-react';
 import { useNavigate, Link } from "react-router-dom";
-
+const backendURL = import.meta.env.VITE_BACKEND_URL;
 const Register = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -64,7 +64,7 @@ const Register = () => {
       formDataToSend.append('profilePic', fileInput.files[0]);
     }
     
-    const response = await fetch('http://localhost:3000/register', {
+    const response = await fetch(`${backendURL}/register`, {
       method: 'POST',
       // No incluir el Content-Type header cuando se envía FormData
       body: formDataToSend,

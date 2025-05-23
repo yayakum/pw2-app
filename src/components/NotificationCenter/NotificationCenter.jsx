@@ -13,7 +13,7 @@ import {
   CheckCheck,
   Image
 } from "lucide-react";
-
+const backendURL = import.meta.env.VITE_BACKEND_URL;
 // Mapa de iconos para diferentes tipos de notificaciones
 const notificationIcons = {
   message: MessageCircle,
@@ -114,8 +114,8 @@ const NotificationCenter = () => {
       const isCurrentUser = parseInt(userId) === parseInt(currentUserId);
       
       const url = isCurrentUser 
-        ? 'http://localhost:3000/profile'
-        : `http://localhost:3000/profile/${userId}`;
+        ? `${backendURL}/profile`
+        : `${backendURL}/profile/${userId}`;
 
       const response = await fetch(url, {
         method: 'GET',
@@ -155,7 +155,7 @@ const NotificationCenter = () => {
         return;
       }
       
-      const response = await fetch('http://localhost:3000/getUnreadNotiCount', {
+      const response = await fetch(`${backendURL}/getUnreadNotiCount`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -187,7 +187,7 @@ const NotificationCenter = () => {
         throw new Error('No hay token de autenticación');
       }
       
-      const response = await fetch('http://localhost:3000/getUserNoti', {
+      const response = await fetch(`${backendURL}/getUserNoti`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -237,7 +237,7 @@ const NotificationCenter = () => {
       setNotifications(notifications.filter((notification) => notification.id !== id));
       setOpenMenuId(null);
       
-      const response = await fetch(`http://localhost:3000/deleteNoti/${id}`, {
+      const response = await fetch(`${backendURL}/deleteNoti/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -272,7 +272,7 @@ const NotificationCenter = () => {
       // Optimistic UI update
       setNotifications([]);
       
-      const response = await fetch('http://localhost:3000/deleteAllNoti', {
+      const response = await fetch(`${backendURL}/deleteAllNoti`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -312,7 +312,7 @@ const NotificationCenter = () => {
       );
       setOpenMenuId(null);
       
-      const response = await fetch(`http://localhost:3000/markNotiAsRead/${id}`, {
+      const response = await fetch(`${backendURL}/markNotiAsRead/${id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -349,7 +349,7 @@ const NotificationCenter = () => {
         notifications.map((notification) => ({ ...notification, isRead: true }))
       );
       
-      const response = await fetch('http://localhost:3000/markAllNotiAsRead', {
+      const response = await fetch(`${backendURL}/markAllNotiAsRead`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

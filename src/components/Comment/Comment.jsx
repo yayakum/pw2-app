@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Send, Edit, Trash2, CheckCircle, MoreVertical, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
+const backendURL = import.meta.env.VITE_BACKEND_URL;
 // Componente para editar un comentario
 const EditCommentForm = ({ comment, onSave, onCancel }) => {
   const [editedContent, setEditedContent] = useState(comment.content);
@@ -308,8 +308,8 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
       const isCurrentUser = parseInt(userId) === parseInt(currentUserId);
       
       const url = isCurrentUser 
-        ? 'http://localhost:3000/profile'
-        : `http://localhost:3000/profile/${userId}`;
+        ? `${backendURL}/profile`
+        : `${backendURL}/profile/${userId}`;
 
       const response = await fetch(url, {
         method: 'GET',
@@ -346,7 +346,7 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
     setError(null);
     
     try {
-      const response = await fetch(`http://localhost:3000/getPostComments/${postId}`);
+      const response = await fetch(`${backendURL}/getPostComments/${postId}`);
       
       if (!response.ok) {
         throw new Error('Error al obtener comentarios');
@@ -395,7 +395,7 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
         throw new Error('No hay token de autenticación');
       }
       
-      const response = await fetch(`http://localhost:3000/createComment/${postId}`, {
+      const response = await fetch(`${backendURL}/createComment/${postId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -437,7 +437,7 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
         throw new Error('No hay token de autenticación');
       }
       
-      const response = await fetch(`http://localhost:3000/deleteComment/${commentId}`, {
+      const response = await fetch(`${backendURL}/deleteComment/${commentId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -473,7 +473,7 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
         throw new Error('No hay token de autenticación');
       }
       
-      const response = await fetch(`http://localhost:3000/updateComment/${commentId}`, {
+      const response = await fetch(`${backendURL}/updateComment/${commentId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

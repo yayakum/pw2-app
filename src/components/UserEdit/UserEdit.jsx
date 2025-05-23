@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Lock, Mail, X, Upload, Rocket } from 'lucide-react';
-
+const backendURL = import.meta.env.VITE_BACKEND_URL;
 const UserEdit = ({ isOpen, onClose, initialUser }) => {
   const [userData, setUserData] = useState({
     username: '',
@@ -91,7 +91,7 @@ const UserEdit = ({ isOpen, onClose, initialUser }) => {
       }
 
       // Realizar la petición al backend
-      const response = await fetch('http://localhost:3000/updateprofile', {
+      const response = await fetch(`${backendURL}/updateprofile`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`

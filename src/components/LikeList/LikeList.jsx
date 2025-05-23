@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Heart, Users, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
+const backendURL = import.meta.env.VITE_BACKEND_URL;
 const LikeList = ({ isOpen, onClose, postId }) => {
   const [likes, setLikes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -38,8 +38,8 @@ const LikeList = ({ isOpen, onClose, postId }) => {
       const isCurrentUser = parseInt(userId) === parseInt(currentUserId);
       
       const url = isCurrentUser 
-        ? 'http://localhost:3000/profile'
-        : `http://localhost:3000/profile/${userId}`;
+        ? `${backendURL}/profile`
+        : `${backendURL}/profile/${userId}`;
 
       const response = await fetch(url, {
         method: 'GET',
@@ -75,7 +75,7 @@ const LikeList = ({ isOpen, onClose, postId }) => {
       }
       
       // Obtener los usuarios que sigues
-      const response = await fetch(`http://localhost:3000/getUserFollowing/${JSON.parse(localStorage.getItem('user')).id}`, {
+      const response = await fetch(`${backendURL}/getUserFollowing/${JSON.parse(localStorage.getItem('user')).id}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -113,7 +113,7 @@ const LikeList = ({ isOpen, onClose, postId }) => {
         throw new Error('No hay token de autenticación');
       }
       
-      const response = await fetch(`http://localhost:3000/getPostLikes/${postId}?page=${pagination.page}&limit=${pagination.limit}`, {
+      const response = await fetch(`${backendURL}/getPostLikes/${postId}?page=${pagination.page}&limit=${pagination.limit}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -189,7 +189,7 @@ const LikeList = ({ isOpen, onClose, postId }) => {
         throw new Error('No hay token de autenticación');
       }
       
-      const response = await fetch(`http://localhost:3000/followUser/${userId}`, {
+      const response = await fetch(`${backendURL}/followUser/${userId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -222,7 +222,7 @@ const LikeList = ({ isOpen, onClose, postId }) => {
         throw new Error('No hay token de autenticación');
       }
       
-      const response = await fetch(`http://localhost:3000/unfollowUser/${userId}`, {
+      const response = await fetch(`${backendURL}/unfollowUser/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

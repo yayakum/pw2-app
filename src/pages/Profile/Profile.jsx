@@ -7,6 +7,7 @@ import PostsList from '../../components/PostList/PostList';
 import UserEdit from '../../components/UserEdit/UserEdit';
 import MediaGallery from '../../components/MediaGallery/MediaGallery';
 import AstronautsList from '../../components/AstronautsList/AstronautsList';
+const backendURL = import.meta.env.VITE_BACKEND_URL;
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('posts');
@@ -70,7 +71,7 @@ const Profile = () => {
         }
         
         // Luego hacemos una solicitud al backend para obtener datos completos
-        const response = await fetch('http://localhost:3000/profile', {
+        const response = await fetch(`${backendURL}/profile`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -137,7 +138,7 @@ const Profile = () => {
         }
         
         // Obtener las publicaciones del usuario
-        const response = await fetch(`http://localhost:3000/getUserPosts/${storedUser.id}`, {
+        const response = await fetch(`${backendURL}/getUserPosts/${storedUser.id}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -215,7 +216,7 @@ const Profile = () => {
         throw new Error('No se encontró información de usuario necesaria');
       }
       
-      const response = await fetch(`http://localhost:3000/getUserFollowers/${storedUser.id}`, {
+      const response = await fetch(`${backendURL}/getUserFollowers/${storedUser.id}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -285,7 +286,7 @@ const Profile = () => {
         throw new Error('No se encontró información de usuario necesaria');
       }
       
-      const response = await fetch(`http://localhost:3000/getUserFollowing/${storedUser.id}`, {
+      const response = await fetch(`${backendURL}/getUserFollowing/${storedUser.id}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

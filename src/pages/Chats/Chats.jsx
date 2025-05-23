@@ -4,6 +4,7 @@ import Header from '../../components/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar/LeftSidebar';
 import { useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
+const backendURL = import.meta.env.VITE_BACKEND_URL;
 
 const Chats = () => {
   const navigate = useNavigate();
@@ -42,7 +43,7 @@ const Chats = () => {
   useEffect(() => {
     if (!userId || !token) return;
 
-    const newSocket = io('http://localhost:3000', {
+    const newSocket = io(`${backendURL}`, {
       auth: { token }
     });
 
@@ -107,7 +108,7 @@ const Chats = () => {
     try {
       setLoading(true);
       
-      const response = await fetch('http://localhost:3000/getUserConversations', {
+      const response = await fetch(`${backendURL}/getUserConversations`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -142,7 +143,7 @@ const Chats = () => {
     try {
       setLoading(true);
       
-      const response = await fetch(`http://localhost:3000/getUserFollowers/${userId}`, {
+      const response = await fetch(`${backendURL}/getUserFollowers/${userId}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -192,7 +193,7 @@ const Chats = () => {
     try {
       setLoading(true);
       
-      const response = await fetch(`http://localhost:3000/getUserFollowing/${userId}`, {
+      const response = await fetch(`${backendURL}/getUserFollowing/${userId}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -286,7 +287,7 @@ const Chats = () => {
     try {
       setLoading(true);
       
-      const response = await fetch(`http://localhost:3000/getConversationMessages/${otherUserId}?page=${page}&limit=20`, {
+      const response = await fetch(`${backendURL}/getConversationMessages/${otherUserId}?page=${page}&limit=20`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',

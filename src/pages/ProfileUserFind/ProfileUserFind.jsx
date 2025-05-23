@@ -6,6 +6,7 @@ import { Users, MessageCircle, Info, Bookmark, Image, UserPlus } from 'lucide-re
 import PostsList from '../../components/PostList/PostList';
 import MediaGallery from '../../components/MediaGallery/MediaGallery';
 import AstronautsList from '../../components/AstronautsList/AstronautsList';
+const backendURL = import.meta.env.VITE_BACKEND_URL;
 
 const ProfileUserFind = () => {
   const { userId } = useParams(); // Obtener el ID del usuario de la URL
@@ -67,8 +68,8 @@ const ProfileUserFind = () => {
       
       // Determinar la URL y método correctos según el estado actual
       const url = userData.isFollowing 
-        ? `http://localhost:3000/unfollowUser/${userId}`
-        : `http://localhost:3000/followUser/${userId}`;
+        ? `${backendURL}/unfollowUser/${userId}`
+        : `${backendURL}/followUser/${userId}`;
         
       const method = userData.isFollowing ? 'DELETE' : 'POST';
       
@@ -115,7 +116,7 @@ const ProfileUserFind = () => {
         }
         
         // Hacer una solicitud al backend para obtener los datos del perfil de otro usuario
-        const response = await fetch(`http://localhost:3000/Profile/${userId}`, {
+        const response = await fetch(`${backendURL}/Profile/${userId}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -173,7 +174,7 @@ const ProfileUserFind = () => {
         }
         
         // Obtener las publicaciones del usuario
-        const response = await fetch(`http://localhost:3000/getUserPosts/${userId}`, {
+        const response = await fetch(`${backendURL}/getUserPosts/${userId}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -249,7 +250,7 @@ const ProfileUserFind = () => {
           throw new Error('No se encontró información de usuario necesaria');
         }
         
-        const response = await fetch(`http://localhost:3000/getUserFollowers/${userId}`, {
+        const response = await fetch(`${backendURL}/getUserFollowers/${userId}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -313,7 +314,7 @@ const ProfileUserFind = () => {
           throw new Error('No se encontró información de usuario necesaria');
         }
         
-        const response = await fetch(`http://localhost:3000/getUserFollowing/${userId}`, {
+        const response = await fetch(`${backendURL}/getUserFollowing/${userId}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

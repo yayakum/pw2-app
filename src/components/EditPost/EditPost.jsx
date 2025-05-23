@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import EmojiDisplay from '../EmojiDisplay/EmojiDisplay';
 import { X } from 'lucide-react';
-
+const backendURL = import.meta.env.VITE_BACKEND_URL;
 const EditPost = ({ post, onSave, onCancel }) => {
   // Estados para los datos de la publicación
   const [editedContent, setEditedContent] = useState(post.description || '');
@@ -32,7 +32,7 @@ const EditPost = ({ post, onSave, onCancel }) => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch('http://localhost:3000/getAllCategories');
+        const response = await fetch(`${backendURL}/getAllCategories`);
         if (!response.ok) {
           throw new Error('Error al obtener categorías');
         }

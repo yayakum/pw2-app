@@ -4,6 +4,7 @@ import LeftSidebar from '../../components/LeftSidebar/LeftSidebar';
 import CreatePost from '../../components/CreatePost/CreatePost';
 import PostsList from '../../components/PostList/PostList';
 import { Users } from 'lucide-react';
+const backendURL = import.meta.env.VITE_BACKEND_URL;
 
 const Dashboard = () => {
   const [posts, setPosts] = useState([]);
@@ -50,7 +51,7 @@ const Dashboard = () => {
       }
       
       // Primero, verificamos si el usuario sigue a alguien
-      const followingResponse = await fetch(`http://localhost:3000/getUserFollowing/${userId}`, {
+      const followingResponse = await fetch(`${backendURL}/getUserFollowing/${userId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -76,7 +77,7 @@ const Dashboard = () => {
       }
       
       // Si sigue a alguien, obtener las publicaciones de los usuarios seguidos
-      const response = await fetch('http://localhost:3000/getFeedPosts', {
+      const response = await fetch(`${backendURL}/getFeedPosts`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -145,7 +146,7 @@ const Dashboard = () => {
       }
       
       // Puedes implementar un endpoint específico para sugerencias, o usar la búsqueda
-      const response = await fetch('http://localhost:3000/search?q=', {
+      const response = await fetch(`${backendURL}/search?q=`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -177,7 +178,7 @@ const Dashboard = () => {
         throw new Error('No hay token de autenticación');
       }
       
-      const response = await fetch(`http://localhost:3000/followUser/${userId}`, {
+      const response = await fetch(`${backendURL}/followUser/${userId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -223,7 +224,7 @@ const Dashboard = () => {
       
       setLoading(true);
       
-      const response = await fetch(`http://localhost:3000/getFeedPosts?page=${page}&limit=${pagination.limit}`, {
+      const response = await fetch(`${backendURL}/getFeedPosts?page=${page}&limit=${pagination.limit}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

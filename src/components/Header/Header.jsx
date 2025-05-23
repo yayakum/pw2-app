@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Bell, LogOut } from 'lucide-react';
 import NotificationCenter from '../NotificationCenter/NotificationCenter';
 import { useNavigate, Link } from 'react-router-dom';
-
+const backendURL = import.meta.env.VITE_BACKEND_URL;
 const Header = () => {
   const navigate = useNavigate();
   const [userData, setUserData] = useState(null);
@@ -26,7 +26,7 @@ const Header = () => {
         // Luego hacer petición al backend para obtener datos completos incluida la imagen
         const token = localStorage.getItem('token');
         if (token) {
-          const response = await fetch('http://localhost:3000/profile', {
+          const response = await fetch(`${backendURL}/profile`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,
