@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Heart, Users, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
 const LikeList = ({ isOpen, onClose, postId }) => {
   const [likes, setLikes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -11,14 +12,58 @@ const LikeList = ({ isOpen, onClose, postId }) => {
     total: 0,
     pages: 0
   });
-  const [followStatus, setFollowStatus] = useState({}); // Para almacenar el estado de seguimiento
-const navigate = useNavigate();
+  const [followStatus, setFollowStatus] = useState({});
+  const [profileImages, setProfileImages] = useState({}); // Estado para las imágenes de perfil
+  const [loadingImages, setLoadingImages] = useState({}); // Estado para loading de imágenes
+  
+  const navigate = useNavigate();
+
   // Cargar likes cuando se abre el modal
   useEffect(() => {
     if (isOpen && postId) {
       fetchLikes();
     }
   }, [isOpen, postId, pagination.page]);
+
+  // Función para cargar la imagen de perfil de un usuario específico
+  const fetchUserProfileImage = async (userId) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+
+      // Marcar como cargando
+      setLoadingImages(prev => ({ ...prev, [userId]: true }));
+
+      const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id;
+      const isCurrentUser = parseInt(userId) === parseInt(currentUserId);
+      
+      const url = isCurrentUser 
+        ? 'http://localhost:3000/profile'
+        : `http://localhost:3000/profile/${userId}`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setProfileImages(prev => ({
+          ...prev,
+          [userId]: userData.profilePic
+        }));
+        return userData.profilePic;
+      }
+    } catch (error) {
+      console.error('Error fetching user profile image:', error);
+    } finally {
+      setLoadingImages(prev => ({ ...prev, [userId]: false }));
+    }
+    return null;
+  };
 
   // Verificar el estado de seguimiento para cada usuario
   const checkFollowStatus = async (userId) => {
@@ -95,23 +140,32 @@ const navigate = useNavigate();
       const newFollowStatus = {};
       const currentUserId = JSON.parse(localStorage.getItem('user')).id;
       
-      // Verificar el estado de seguimiento para cada usuario
+      // Cargar imágenes de perfil y verificar estado de seguimiento para cada usuario
       for (const like of likesData) {
+        const userId = like.usuario?.id;
+        
+        if (!userId) continue;
+        
+        // Cargar imagen de perfil
+        if (!profileImages[userId]) {
+          fetchUserProfileImage(userId);
+        }
+        
         // No necesitamos verificar para el usuario actual
-        if (like.usuario?.id === parseInt(currentUserId)) {
+        if (userId === parseInt(currentUserId)) {
           continue;
         }
         
         // Si ya tenemos la información de isFollowing en la respuesta
         if (like.isFollowing !== undefined) {
-          newFollowStatus[like.usuario.id] = like.isFollowing;
+          newFollowStatus[userId] = like.isFollowing;
         } else {
           // Si no tenemos la información, verificamos manualmente
           try {
-            newFollowStatus[like.usuario.id] = await checkFollowStatus(like.usuario.id);
+            newFollowStatus[userId] = await checkFollowStatus(userId);
           } catch (err) {
-            console.error(`Error checking follow status for user ${like.usuario.id}:`, err);
-            newFollowStatus[like.usuario.id] = false;
+            console.error(`Error checking follow status for user ${userId}:`, err);
+            newFollowStatus[userId] = false;
           }
         }
       }
@@ -211,7 +265,7 @@ const navigate = useNavigate();
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center  backdrop-blur-sm shadow-2xl bg-opacity-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm shadow-2xl bg-opacity-50">
       <div className="bg-gray-800 rounded-lg w-full max-w-md overflow-hidden max-h-[80vh] flex flex-col">
         {/* Encabezado */}
         <div className="flex justify-between items-center px-4 py-3 border-b border-gray-700 bg-gray-800">
@@ -263,27 +317,47 @@ const navigate = useNavigate();
                 };
 
                 const handleProfileClick = () => {
-                  if (isCurrentUser ) {
-                  navigate(`/Profile`);
-                } else {
-                  navigate(`/profile/${like.userId}`);}
+                  if (isCurrentUser) {
+                    navigate(`/Profile`);
+                  } else {
+                    navigate(`/profile/${like.userId}`);
+                  }
                 };
 
                 // Obtener el ID del usuario actual
                 const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id;
                 const isCurrentUser = like.usuario?.id === parseInt(currentUserId);
+                const userId = like.usuario?.id;
                 
                 // Determinar si estamos siguiendo a este usuario
-                const isFollowing = isCurrentUser ? false : (followStatus[like.usuario?.id] || false);
+                const isFollowing = isCurrentUser ? false : (followStatus[userId] || false);
+                
+                // Obtener la imagen de perfil y estado de carga
+                const userProfileImage = profileImages[userId];
+                const isLoadingImage = loadingImages[userId];
                 
                 return (
-                  <li key={like.id} className="py-3 px-4  transition-colors">
+                  <li key={like.id} className="py-3 px-4 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         {/* Avatar del usuario */}
-                        <div  className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500 cursor-pointer" onClick={handleProfileClick}>
-                        <span className="text-white font-bold">{getUserName().charAt(0).toUpperCase()}</span>
-                    </div>
+                        <div 
+                          className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500 cursor-pointer overflow-hidden" 
+                          onClick={handleProfileClick}
+                        >
+                          {isLoadingImage ? (
+                            <div className="animate-pulse bg-gray-600 w-full h-full rounded-full"></div>
+                          ) : userProfileImage ? (
+                            <img 
+                              src={`data:image/jpeg;base64,${userProfileImage}`}
+                              alt={getUserName()}
+                              className="w-full h-full object-cover rounded-full"
+                              onError={() => setProfileImages(prev => ({ ...prev, [userId]: null }))}
+                            />
+                          ) : (
+                            <span className="text-white font-bold">{getUserName().charAt(0).toUpperCase()}</span>
+                          )}
+                        </div>
                         
                         {/* Información del usuario */}
                         <div className="ml-3">

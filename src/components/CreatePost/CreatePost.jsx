@@ -287,9 +287,22 @@ const CreatePost = ({onPostCreated }) => {
   return (
     <div className="mb-6 p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md">
       <div className="flex items-center space-x-3 mb-4">
-        <div  className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500 cursor-pointer" onClick={handleProfileClick}>
-          <span className="text-white font-bold">{getUserName().charAt(0).toUpperCase()}</span>
+        {/* Avatar con imagen de perfil o inicial */}
+        <div 
+          className="w-10 h-10 rounded-full flex items-center justify-center border-2 bg-purple-900 border-purple-500 cursor-pointer overflow-hidden" 
+          onClick={handleProfileClick}
+        >
+          {userData?.profilePic ? (
+            <img 
+              src={`data:image;base64,${userData.profilePic}`} 
+              alt={`${getUserName()} avatar`}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="text-white font-bold">{getUserName().charAt(0).toUpperCase()}</span>
+          )}
         </div>
+        
         <div className="flex items-center flex-wrap">
           <span className="text-gray-300 font-medium">
             {userData ? userData.username : 'Usuario'}

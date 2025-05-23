@@ -81,6 +81,8 @@ const NotificationCenter = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [profileImages, setProfileImages] = useState({}); // Estado para las imágenes de perfil
+  const [loadingImages, setLoadingImages] = useState({}); // Estado para loading de imágenes
 
   // Cargar el conteo de notificaciones no leídas al iniciar
   useEffect(() => {
@@ -98,6 +100,51 @@ const NotificationCenter = () => {
       fetchNotifications();
     }
   }, [isOpen]);
+
+  // Función para cargar la imagen de perfil de un usuario específico
+  const fetchUserProfileImage = async (userId) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+
+      // Marcar como cargando
+      setLoadingImages(prev => ({ ...prev, [userId]: true }));
+
+      const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id;
+      const isCurrentUser = parseInt(userId) === parseInt(currentUserId);
+      
+      const url = isCurrentUser 
+        ? 'http://localhost:3000/profile'
+        : `http://localhost:3000/profile/${userId}`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setProfileImages(prev => ({
+          ...prev,
+          [userId]: userData.profilePic
+        }));
+        return userData.profilePic;
+      }
+    } catch (error) {
+      console.error('Error fetching user profile image:', error);
+    } finally {
+      setLoadingImages(prev => ({ ...prev, [userId]: false }));
+    }
+    return null;
+  };
+
+  // Función para manejar errores de imagen
+  const handleImageError = (userId) => {
+    setProfileImages(prev => ({ ...prev, [userId]: null }));
+  };
 
   // Función para obtener el conteo de notificaciones no leídas
   const fetchUnreadCount = async () => {
@@ -153,7 +200,21 @@ const NotificationCenter = () => {
       }
       
       const data = await response.json();
-      setNotifications(data.data || []);
+      const notificationsData = data.data || [];
+      setNotifications(notificationsData);
+      
+      // Cargar imágenes de perfil para cada usuario de las notificaciones
+      const uniqueUserIds = [...new Set(
+        notificationsData
+          .map(notification => notification.fromUserId || notification.fromUser?.id)
+          .filter(Boolean)
+      )];
+      
+      for (const userId of uniqueUserIds) {
+        if (userId && !profileImages[userId]) {
+          fetchUserProfileImage(userId);
+        }
+      }
       
     } catch (err) {
       console.error('Error fetching notifications:', err);
@@ -317,22 +378,22 @@ const NotificationCenter = () => {
   };
 
   // Manejar clic en notificación para ir a la publicación
-  // const handleNotificationClick = (notification) => {
-  //   // Si la notificación tiene un ID de publicación, navegar a ella
-  //   if (notification.postId) {
-  //     // Marcar como leída primero
-  //     if (!notification.isRead) {
-  //       markAsRead(notification.id);
-  //     }
+  const handleNotificationClick = (notification) => {
+    // Si la notificación tiene un ID de publicación, navegar a ella
+    if (notification.postId) {
+      // Marcar como leída primero
+      if (!notification.isRead) {
+        markAsRead(notification.id);
+      }
       
-  //     // Cerrar el menú de notificaciones
-  //     setIsOpen(false);
+      // Cerrar el menú de notificaciones
+      setIsOpen(false);
       
-  //     // Navegar a la publicación (implementar según la estructura de tu aplicación)
-  //     // Por ejemplo:
-  //     window.location.href = `/post/${notification.postId}`;
-  //   }
-  // };
+      // Navegar a la publicación (implementar según la estructura de tu aplicación)
+      // Por ejemplo:
+      // window.location.href = `/post/${notification.postId}`;
+    }
+  };
 
   return (
     <div className="relative inline-block">
@@ -407,6 +468,12 @@ const NotificationCenter = () => {
                       const iconColor = notificationColors[notification.type] || notificationColors.default;
                       const notificationText = getNotificationText(notification);
                       
+                      // Obtener el userId del fromUser
+                      const fromUserId = notification.fromUserId || notification.fromUser?.id;
+                      const userProfileImage = profileImages[fromUserId];
+                      const isLoadingImage = loadingImages[fromUserId];
+                      const userName = notification.fromUser?.username || "Usuario";
+                      
                       return (
                         <motion.div
                           key={notification.id}
@@ -419,18 +486,29 @@ const NotificationCenter = () => {
                             className="flex items-start space-x-3 cursor-pointer flex-1"
                             onClick={() => handleNotificationClick(notification)}
                           >
-                            {/* Avatar o icono */}
-                            {notification.fromUser?.profilePic ? (
-                              <img 
-                                src={`data:image/jpeg;base64,${notification.fromUser.profilePic}`}
-                                alt={notification.fromUser.username}
-                                className="w-10 h-10 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center">
-                                <NotificationIcon size={20} className={`${iconColor}`} />
-                              </div>
-                            )}
+                            {/* Avatar del usuario */}
+                            <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center overflow-hidden border border-gray-600">
+                              {isLoadingImage ? (
+                                <div className="animate-pulse bg-gray-600 w-full h-full rounded-full"></div>
+                              ) : userProfileImage ? (
+                                <img 
+                                  src={`data:image/jpeg;base64,${userProfileImage}`}
+                                  alt={userName}
+                                  className="w-full h-full object-cover rounded-full"
+                                  onError={() => handleImageError(fromUserId)}
+                                />
+                              ) : (
+                                <div className="w-full h-full rounded-full bg-purple-900 flex items-center justify-center border border-purple-500">
+                                  {fromUserId ? (
+                                    <span className="text-white font-bold text-sm">
+                                      {userName.charAt(0).toUpperCase()}
+                                    </span>
+                                  ) : (
+                                    <NotificationIcon size={20} className={`${iconColor}`} />
+                                  )}
+                                </div>
+                              )}
+                            </div>
                             
                             <div className="flex-1">
                               <div className={`text-sm ${notification.isRead ? 'text-gray-400' : 'text-white'}`}>

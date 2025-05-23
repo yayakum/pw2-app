@@ -573,11 +573,23 @@ const Profile = () => {
           {/* Cabecera de perfil simplificada */}
           <div className="bg-gray-800 rounded-lg shadow-md p-6">
             <div className="flex flex-col sm:flex-row sm:items-center relative">
-              {/* Avatar como elemento de texto */}
-              <div className="w-24 h-24 rounded-full bg-purple-900 flex items-center justify-center border-4 border-purple-500 mb-4 sm:mb-0">
-                <span className="text-white text-4xl font-bold">
-                  {userData.username ? userData.username.charAt(0).toUpperCase() : 'U'}
-                </span>
+              {/* Avatar con imagen o inicial */}
+              <div className="w-24 h-24 rounded-full bg-purple-900 flex items-center justify-center border-4 border-purple-500 mb-4 sm:mb-0 overflow-hidden">
+                {userData.profilePic ? (
+                  <img 
+                    src={`data:image;base64,${userData.profilePic}`} 
+                    alt={`${userData.username} avatar`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('Error al cargar la imagen:', e);
+                      console.log('URL de la imagen:', e.target.src.substring(0, 100) + '...');
+                    }}
+                  />
+                ) : (
+                  <span className="text-white text-4xl font-bold">
+                    {userData.username ? userData.username.charAt(0).toUpperCase() : 'U'}
+                  </span>
+                )}
               </div>
               
               <div className="ml-0 sm:ml-6">

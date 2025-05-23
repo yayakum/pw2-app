@@ -17,22 +17,27 @@ const UserEdit = ({ isOpen, onClose, initialUser }) => {
 
   // Inicializar datos del usuario cuando el componente se monta o cuando cambia initialUser
   useEffect(() => {
-    if (initialUser) {
-      // Establecer los datos iniciales
-      setUserData(prevData => ({
-        ...prevData,
-        username: initialUser.name || '',
-        email: initialUser.email || '',
-        bio: initialUser.bio || ''
-      }));
+  if (initialUser) {
+    // Establecer los datos iniciales
+    setUserData(prevData => ({
+      ...prevData,
+      username: initialUser.name || '',
+      email: initialUser.email || '',
+      bio: initialUser.bio || ''
+    }));
 
-      // Si hay una imagen de perfil almacenada en localStorage, usarla como vista previa
+    // Priorizar la imagen del initialUser (viene del backend)
+    if (initialUser.profilePic) {
+      setPreviewImage(`data:image;base64,${initialUser.profilePic}`);
+    } else {
+      // Fallback: si no hay imagen en initialUser, intentar desde localStorage
       const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
       if (storedUser.profilePic) {
-        setPreviewImage(`data:image/jpeg;base64,${storedUser.profilePic}`);
+        setPreviewImage(`data:image;base64,${storedUser.profilePic}`);
       }
     }
-  }, [initialUser, isOpen]);
+  }
+}, [initialUser, isOpen]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -166,7 +171,13 @@ const UserEdit = ({ isOpen, onClose, initialUser }) => {
                   <img 
                     src={previewImage} 
                     alt="Vista previa" 
-                    className="w-full h-full object-cover" 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('Error al cargar imagen en UserEdit:', e);
+                      console.log('URL de imagen:', e.target.src.substring(0, 100) + '...');
+                      // Si falla la imagen, mostrar el icono de fallback
+                      setPreviewImage(null);
+                    }}
                   />
                 ) : (
                   <div className="text-purple-400">

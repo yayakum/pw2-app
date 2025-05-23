@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Send, Edit, Trash2, CheckCircle, MoreVertical, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
 // Componente para editar un comentario
 const EditCommentForm = ({ comment, onSave, onCancel }) => {
   const [editedContent, setEditedContent] = useState(comment.content);
@@ -63,11 +64,12 @@ const EditCommentForm = ({ comment, onSave, onCancel }) => {
 };
 
 // Componente de comentario individual
-const Comment = ({ comment, onDelete, onEdit, currentUserId }) => {
+const Comment = ({ comment, onDelete, onEdit, currentUserId, profileImage, isLoadingImage, onImageError }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const menuRef = useRef(null);
+  const navigate = useNavigate();
 
   // Determinar si el usuario actual es el autor del comentario
   const isAuthor = currentUserId && comment.userId === parseInt(currentUserId);
@@ -133,23 +135,36 @@ const Comment = ({ comment, onDelete, onEdit, currentUserId }) => {
   const getUserName = () => {
     return comment.usuario?.username || 'Usuario';
   };
-const navigate = useNavigate();
 
   const handleProfileClick = () => {
-  if (currentUserId && comment.userId === parseInt(currentUserId)) {
-    navigate(`/Profile`);
-  } else {
-    navigate(`/Profile/${comment.userId}`);
-  }
-};
+    if (currentUserId && comment.userId === parseInt(currentUserId)) {
+      navigate(`/Profile`);
+    } else {
+      navigate(`/Profile/${comment.userId}`);
+    }
+  };
 
   
   return (
     <div className="py-3 border-b border-b-gray-700 last:border-0">
       <div className="flex items-start space-x-3">
         {/* Avatar del usuario */}
-        <div  className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500 cursor-pointer " onClick={handleProfileClick}>
-          <span className="text-white font-bold">{getUserName().charAt(0).toUpperCase()}</span>
+        <div 
+          className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500 cursor-pointer overflow-hidden" 
+          onClick={handleProfileClick}
+        >
+          {isLoadingImage ? (
+            <div className="animate-pulse bg-gray-600 w-full h-full rounded-full"></div>
+          ) : profileImage ? (
+            <img 
+              src={`data:image/jpeg;base64,${profileImage}`}
+              alt={getUserName()}
+              className="w-full h-full object-cover rounded-full"
+              onError={() => onImageError(comment.userId)}
+            />
+          ) : (
+            <span className="text-white font-bold">{getUserName().charAt(0).toUpperCase()}</span>
+          )}
         </div>
         
         <div className="flex-1">
@@ -221,6 +236,8 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [profileImages, setProfileImages] = useState({}); // Estado para las imágenes de perfil
+  const [loadingImages, setLoadingImages] = useState({}); // Estado para loading de imágenes
   const modalRef = useRef(null);
   const inputRef = useRef(null);
   const [currentUserId, setCurrentUserId] = useState(null);
@@ -278,6 +295,51 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
     };
   }, [isOpen]);
 
+  // Función para cargar la imagen de perfil de un usuario específico
+  const fetchUserProfileImage = async (userId) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+
+      // Marcar como cargando
+      setLoadingImages(prev => ({ ...prev, [userId]: true }));
+
+      const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id;
+      const isCurrentUser = parseInt(userId) === parseInt(currentUserId);
+      
+      const url = isCurrentUser 
+        ? 'http://localhost:3000/profile'
+        : `http://localhost:3000/profile/${userId}`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setProfileImages(prev => ({
+          ...prev,
+          [userId]: userData.profilePic
+        }));
+        return userData.profilePic;
+      }
+    } catch (error) {
+      console.error('Error fetching user profile image:', error);
+    } finally {
+      setLoadingImages(prev => ({ ...prev, [userId]: false }));
+    }
+    return null;
+  };
+
+  // Función para manejar errores de imagen
+  const handleImageError = (userId) => {
+    setProfileImages(prev => ({ ...prev, [userId]: null }));
+  };
+
   // Función para obtener los comentarios
   const fetchComments = async () => {
     setIsLoading(true);
@@ -293,7 +355,17 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
       const data = await response.json();
       
       // El controlador devuelve un objeto con una propiedad "data" que contiene los comentarios
-      setComments(data.data || []);
+      const commentsData = data.data || [];
+      setComments(commentsData);
+      
+      // Cargar imágenes de perfil para cada usuario de los comentarios
+      const uniqueUserIds = [...new Set(commentsData.map(comment => comment.userId))];
+      
+      for (const userId of uniqueUserIds) {
+        if (userId && !profileImages[userId]) {
+          fetchUserProfileImage(userId);
+        }
+      }
       
     } catch (err) {
       console.error('Error fetching comments:', err);
@@ -478,6 +550,9 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
                 onDelete={handleDeleteComment}
                 onEdit={handleEditComment}
                 currentUserId={currentUserId}
+                profileImage={profileImages[comment.userId]}
+                isLoadingImage={loadingImages[comment.userId]}
+                onImageError={handleImageError}
               />
             ))
           )}
