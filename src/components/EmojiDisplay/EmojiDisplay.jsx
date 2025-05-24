@@ -2,18 +2,14 @@ import React from 'react';
 import { X } from 'lucide-react';
 
 /**
- * Componente para mostrar un emoji con su sentimiento
- * 
  * @param {Object} emoji - Objeto con datos del emoji
  * @param {boolean} showRemoveButton - Indica si se muestra el botón para eliminar
  * @param {Function} onRemove - Función para eliminar el emoji
  * @param {string} className - Clases adicionales
  */
 const EmojiDisplay = ({ emoji, showRemoveButton = false, onRemove = () => {}, className = "" }) => {
-  // Si no hay emoji, no mostrar nada
   if (!emoji) return null;
 
-  // Intentar parsear el emoji si es una cadena JSON
   let emojiData = emoji;
   if (typeof emoji === 'string') {
     try {
@@ -24,7 +20,6 @@ const EmojiDisplay = ({ emoji, showRemoveButton = false, onRemove = () => {}, cl
     }
   }
 
-  // Si después de parsear no tenemos un objeto con emoji y label, no mostrar nada
   if (!emojiData || !emojiData.emoji || !emojiData.label) return null;
 
   return (

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, Send, Edit, Trash2, CheckCircle, MoreVertical, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 const backendURL = import.meta.env.VITE_BACKEND_URL;
-// Componente para editar un comentario
+
 const EditCommentForm = ({ comment, onSave, onCancel }) => {
   const [editedContent, setEditedContent] = useState(comment.content);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -10,7 +10,6 @@ const EditCommentForm = ({ comment, onSave, onCancel }) => {
   
 
   useEffect(() => {
-    // Enfocar el textarea cuando se abre el formulario de edición
     if (textareaRef.current) {
       textareaRef.current.focus();
     }
@@ -63,186 +62,179 @@ const EditCommentForm = ({ comment, onSave, onCancel }) => {
   );
 };
 
-// Componente de comentario individual
-const Comment = ({ comment, onDelete, onEdit, currentUserId, profileImage, isLoadingImage, onImageError }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const menuRef = useRef(null);
-  const navigate = useNavigate();
+  const Comment = ({ comment, onDelete, onEdit, currentUserId, profileImage, isLoadingImage, onImageError }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const menuRef = useRef(null);
+    const navigate = useNavigate();
 
-  // Determinar si el usuario actual es el autor del comentario
-  const isAuthor = currentUserId && comment.userId === parseInt(currentUserId);
-  
-  // Función para formatear la fecha
-  const formatCommentDate = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now - date) / 1000);
+    // Determinar si el usuario actual es el autor del comentario
+    const isAuthor = currentUserId && comment.userId === parseInt(currentUserId);
     
-    if (diffInSeconds < 60) {
-      return 'hace unos segundos';
-    } else if (diffInSeconds < 3600) {
-      const minutes = Math.floor(diffInSeconds / 60);
-      return `hace ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`;
-    } else if (diffInSeconds < 86400) {
-      const hours = Math.floor(diffInSeconds / 3600);
-      return `hace ${hours} ${hours === 1 ? 'hora' : 'horas'}`;
-    } else {
-      const days = Math.floor(diffInSeconds / 86400);
-      return `hace ${days} ${days === 1 ? 'día' : 'días'}`;
-    }
-  };
-
-  // Manejar clics fuera del menú para cerrarlo
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setMenuOpen(false);
+    const formatCommentDate = (dateString) => {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffInSeconds = Math.floor((now - date) / 1000);
+      
+      if (diffInSeconds < 60) {
+        return 'hace unos segundos';
+      } else if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        return `hace ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`;
+      } else if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600);
+        return `hace ${hours} ${hours === 1 ? 'hora' : 'horas'}`;
+      } else {
+        const days = Math.floor(diffInSeconds / 86400);
+        return `hace ${days} ${days === 1 ? 'día' : 'días'}`;
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (menuRef.current && !menuRef.current.contains(event.target)) {
+          setMenuOpen(false);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }, []);
+
+    const handleSaveEdit = async (newContent) => {
+      try {
+        await onEdit(comment.id, newContent);
+        setIsEditing(false);
+      } catch (error) {
+        console.error('Error editing comment:', error);
+        alert(`Error al editar el comentario: ${error.message}`);
+      }
     };
-  }, []);
 
-  const handleSaveEdit = async (newContent) => {
-    try {
-      await onEdit(comment.id, newContent);
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Error editing comment:', error);
-      alert(`Error al editar el comentario: ${error.message}`);
-    }
-  };
+    const handleDelete = async () => {
+      if (isDeleting) return;
 
-  const handleDelete = async () => {
-    if (isDeleting) return;
+      try {
+        setIsDeleting(true);
+        await onDelete(comment.id);
+      } catch (error) {
+        console.error('Error deleting comment:', error);
+        alert(`Error al eliminar el comentario: ${error.message}`);
+        setIsDeleting(false);
+      }
+    };
 
-    try {
-      setIsDeleting(true);
-      await onDelete(comment.id);
-    } catch (error) {
-      console.error('Error deleting comment:', error);
-      alert(`Error al eliminar el comentario: ${error.message}`);
-      setIsDeleting(false);
-    }
-  };
+    const getUserName = () => {
+      return comment.usuario?.username || 'Usuario';
+    };
 
-  // Obtener nombre del usuario
-  const getUserName = () => {
-    return comment.usuario?.username || 'Usuario';
-  };
+    const handleProfileClick = () => {
+      if (currentUserId && comment.userId === parseInt(currentUserId)) {
+        navigate(`/Profile`);
+      } else {
+        navigate(`/Profile/${comment.userId}`);
+      }
+    };
 
-  const handleProfileClick = () => {
-    if (currentUserId && comment.userId === parseInt(currentUserId)) {
-      navigate(`/Profile`);
-    } else {
-      navigate(`/Profile/${comment.userId}`);
-    }
-  };
-
-  
-  return (
-    <div className="py-3 border-b border-b-gray-700 last:border-0">
-      <div className="flex items-start space-x-3">
-        {/* Avatar del usuario */}
-        <div 
-          className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500 cursor-pointer overflow-hidden" 
-          onClick={handleProfileClick}
-        >
-          {isLoadingImage ? (
-            <div className="animate-pulse bg-gray-600 w-full h-full rounded-full"></div>
-          ) : profileImage ? (
-            <img 
-              src={`data:image/jpeg;base64,${profileImage}`}
-              alt={getUserName()}
-              className="w-full h-full object-cover rounded-full"
-              onError={() => onImageError(comment.userId)}
-            />
-          ) : (
-            <span className="text-white font-bold">{getUserName().charAt(0).toUpperCase()}</span>
-          )}
-        </div>
-        
-        <div className="flex-1">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center mb-1">
-              <span className="text-sm font-medium">{getUserName()}</span>
-              <span className="text-xs text-gray-400 ml-2">
-                {formatCommentDate(comment.createdAt)}
-              </span>
-            </div>
-            
-            {/* Menú de opciones (solo visible para el autor) */}
-            {isAuthor && !isEditing && (
-              <div className="relative" ref={menuRef}>
-                <button 
-                  onClick={() => setMenuOpen(!menuOpen)}
-                  className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700"
-                >
-                  <MoreVertical size={16} />
-                </button>
-                
-                {menuOpen && (
-                  <div className="absolute right-0 top-6 bg-gray-800 rounded-md shadow-lg border border-gray-700 z-10 w-24">
-                    <button 
-                      onClick={() => {
-                        setIsEditing(true);
-                        setMenuOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-700 text-gray-300 flex items-center"
-                    >
-                      <Edit size={14} className="mr-2" />
-                      <span>Editar</span>
-                    </button>
-                    <button 
-                      onClick={handleDelete}
-                      disabled={isDeleting}
-                      className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-700 text-red-400 flex items-center ${
-                        isDeleting ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      <Trash2 size={14} className="mr-2" />
-                      <span>{isDeleting ? 'Eliminando...' : 'Eliminar'}</span>
-                    </button>
-                  </div>
-                )}
-              </div>
+    
+    return (
+      <div className="py-3 border-b border-b-gray-700 last:border-0">
+        <div className="flex items-start space-x-3">
+          <div 
+            className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500 cursor-pointer overflow-hidden" 
+            onClick={handleProfileClick}
+          >
+            {isLoadingImage ? (
+              <div className="animate-pulse bg-gray-600 w-full h-full rounded-full"></div>
+            ) : profileImage ? (
+              <img 
+                src={`data:image/jpeg;base64,${profileImage}`}
+                alt={getUserName()}
+                className="w-full h-full object-cover rounded-full"
+                onError={() => onImageError(comment.userId)}
+              />
+            ) : (
+              <span className="text-white font-bold">{getUserName().charAt(0).toUpperCase()}</span>
             )}
           </div>
           
-          {isEditing ? (
-            <EditCommentForm
-              comment={{ content: comment.content }}
-              onSave={handleSaveEdit}
-              onCancel={() => setIsEditing(false)}
-            />
-          ) : (
-            <p className="text-sm">{comment.content}</p>
-          )}
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center mb-1">
+                <span className="text-sm font-medium">{getUserName()}</span>
+                <span className="text-xs text-gray-400 ml-2">
+                  {formatCommentDate(comment.createdAt)}
+                </span>
+              </div>
+              
+              {/* Menú de opciones (solo visible para el autor) */}
+              {isAuthor && !isEditing && (
+                <div className="relative" ref={menuRef}>
+                  <button 
+                    onClick={() => setMenuOpen(!menuOpen)}
+                    className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700"
+                  >
+                    <MoreVertical size={16} />
+                  </button>
+                  
+                  {menuOpen && (
+                    <div className="absolute right-0 top-6 bg-gray-800 rounded-md shadow-lg border border-gray-700 z-10 w-24">
+                      <button 
+                        onClick={() => {
+                          setIsEditing(true);
+                          setMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-700 text-gray-300 flex items-center"
+                      >
+                        <Edit size={14} className="mr-2" />
+                        <span>Editar</span>
+                      </button>
+                      <button 
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-700 text-red-400 flex items-center ${
+                          isDeleting ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        <Trash2 size={14} className="mr-2" />
+                        <span>{isDeleting ? 'Eliminando...' : 'Eliminar'}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {isEditing ? (
+              <EditCommentForm
+                comment={{ content: comment.content }}
+                onSave={handleSaveEdit}
+                onCancel={() => setIsEditing(false)}
+              />
+            ) : (
+              <p className="text-sm">{comment.content}</p>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
-// Componente Modal de Comentarios
 const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onCommentAdded }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  const [profileImages, setProfileImages] = useState({}); // Estado para las imágenes de perfil
-  const [loadingImages, setLoadingImages] = useState({}); // Estado para loading de imágenes
+  const [profileImages, setProfileImages] = useState({}); 
+  const [loadingImages, setLoadingImages] = useState({}); 
   const modalRef = useRef(null);
   const inputRef = useRef(null);
   const [currentUserId, setCurrentUserId] = useState(null);
   
-  // Cargar el ID del usuario actual
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
@@ -258,7 +250,6 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
     }
   }, [isOpen, postId]);
 
-  // Efecto para cerrar el modal al hacer clic fuera de él
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (modalRef.current && !modalRef.current.contains(event.target)) {
@@ -266,7 +257,6 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
       }
     };
 
-    // Enfocar el input cuando se abre el modal
     if (isOpen && inputRef.current) {
       setTimeout(() => {
         inputRef.current.focus();
@@ -335,7 +325,6 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
     return null;
   };
 
-  // Función para manejar errores de imagen
   const handleImageError = (userId) => {
     setProfileImages(prev => ({ ...prev, [userId]: null }));
   };
@@ -354,11 +343,9 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
       
       const data = await response.json();
       
-      // El controlador devuelve un objeto con una propiedad "data" que contiene los comentarios
       const commentsData = data.data || [];
       setComments(commentsData);
-      
-      // Cargar imágenes de perfil para cada usuario de los comentarios
+
       const uniqueUserIds = [...new Set(commentsData.map(comment => comment.userId))];
       
       for (const userId of uniqueUserIds) {
@@ -375,10 +362,8 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
     }
   };
 
-  // Si el modal no está abierto, no renderizar
   if (!isOpen) return null;
 
-  // Función para agregar un nuevo comentario
   const handleAddComment = async (e) => {
     e.preventDefault();
     
@@ -409,13 +394,10 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
         throw new Error(errorData.error || 'Error al crear el comentario');
       }
       
-      // Limpiar el campo de comentario
       setNewComment('');
       
-      // Recargar los comentarios para mostrar el nuevo
       await fetchComments();
       
-      // Notificar al componente padre
       if (onCommentAdded) {
         onCommentAdded();
       }
@@ -450,10 +432,8 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
         throw new Error(errorData.error || 'Error al eliminar el comentario');
       }
       
-      // Actualizar la lista de comentarios
       setComments(comments.filter(comment => comment.id !== commentId));
       
-      // Notificar al componente padre
       if (onCommentAdded) {
         onCommentAdded();
       }
@@ -487,10 +467,8 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
         throw new Error(errorData.error || 'Error al actualizar el comentario');
       }
       
-      // Obtener el comentario actualizado
       const updatedComment = await response.json();
-      
-      // Actualizar el comentario en la lista
+
       setComments(
         comments.map(comment => 
           comment.id === commentId 
@@ -511,7 +489,6 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
         ref={modalRef}
         className="bg-gray-800 rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col"
       >
-        {/* Cabecera del modal */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
           <h3 className="text-lg font-medium">Comentarios</h3>
           <button 
@@ -522,7 +499,6 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
           </button>
         </div>
         
-        {/* Lista de comentarios */}
         <div className="flex-1 overflow-y-auto p-4">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-40">
@@ -558,7 +534,6 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
           )}
         </div>
         
-        {/* Formulario para agregar comentario */}
         <div className="border-t border-gray-700 p-4">
           <form onSubmit={handleAddComment} className="flex">
             <input

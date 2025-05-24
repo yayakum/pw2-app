@@ -1,26 +1,22 @@
-/* eslint-disable no-unused-vars */
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, User, Users, MessageCircle, Compass, Settings } from 'lucide-react';
 
 const LeftSidebar = () => {
-  // Hook para obtener la ruta actual
   const location = useLocation();
 
-  // Datos simulados para usuarios activos
   const activeUsers = [
-    { id: 1, name: 'Nebula Walker', avatar: '/api/placeholder/40/40' },
-    { id: 2, name: 'Stellar Nomad', avatar: '/api/placeholder/40/40' },
-    { id: 3, name: 'Luna Explorer', avatar: '/api/placeholder/40/40' }
+    { id: 1, name: 'Nebula Walker', avatar: '' },
+    { id: 2, name: 'Stellar Nomad', avatar: '' },
+    { id: 3, name: 'Luna Explorer', avatar: '' }
   ];
 
-  // Secciones del menú con sus rutas correspondientes
   const menuSections = [
     { icon: Home, name: 'Inicio', path: '/Dashboard' },
     { icon: User, name: 'Perfil', path: '/Profile' },
     // { icon: Users, name: 'Amigos', path: '' },
     { icon: MessageCircle, name: 'Mensajes', path: '/Chats' },
-    { icon: Compass, name: 'Explorar', path: '/Explore' }, // Cambiado de Favoritos a Explorar
+    { icon: Compass, name: 'Explorar', path: '/Explore' },
     // { icon: Settings, name: 'Configuración', path: '' }
   ];
 

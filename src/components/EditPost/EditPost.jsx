@@ -3,7 +3,6 @@ import EmojiDisplay from '../EmojiDisplay/EmojiDisplay';
 import { X } from 'lucide-react';
 const backendURL = import.meta.env.VITE_BACKEND_URL;
 const EditPost = ({ post, onSave, onCancel }) => {
-  // Estados para los datos de la publicación
   const [editedContent, setEditedContent] = useState(post.description || '');
   const [mediaType, setMediaType] = useState(null);
   const [mediaFiles, setMediaFiles] = useState([]);
@@ -15,10 +14,9 @@ const EditPost = ({ post, onSave, onCancel }) => {
   const [loading, setLoading] = useState(true);
   const [existingMedia, setExistingMedia] = useState(false);
   
-  // Referencia para el input de archivo
   const fileInputRef = useRef(null);
 
-  // Lista de emojis para los sentimientos
+  // Lista de emojis
   const emojis = [
     { id: 'happy', emoji: '😀', label: 'Feliz' },
     { id: 'sad', emoji: '😢', label: 'Triste' },
@@ -28,7 +26,6 @@ const EditPost = ({ post, onSave, onCancel }) => {
     { id: 'angry', emoji: '😡', label: 'Enojado' }
   ];
 
-  // Cargar categorías y determinar el tipo de medio al cargar el componente
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -39,7 +36,6 @@ const EditPost = ({ post, onSave, onCancel }) => {
         const data = await response.json();
         setCategories(data);
         
-        // Buscar la categoría correspondiente al post
         if (post.categoryId && data.length > 0) {
           const category = data.find(cat => parseInt(cat.id) === parseInt(post.categoryId));
           setSelectedCategory(category || data[0]);
@@ -53,10 +49,8 @@ const EditPost = ({ post, onSave, onCancel }) => {
       }
     };
 
-    // Determinar el tipo de medio según el contenido de la publicación
     const determineMediaFromPost = () => {
       if (post.content && post.contentType) {
-        // Establecer el tipo de medio según el mimetype
         if (post.contentType.startsWith('image/')) {
           setMediaType('image');
         } else if (post.contentType.startsWith('video/')) {
@@ -77,36 +71,30 @@ const EditPost = ({ post, onSave, onCancel }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Verificar que haya descripción
     if (!editedContent.trim()) {
       alert('La descripción es obligatoria');
       return;
     }
-    
-    // Verificar que haya categoría
+
     if (!selectedCategory) {
       alert('Debes seleccionar una categoría');
       return;
     }
-    
-    // Preparar los datos para enviar
+
     const updatedData = {
       description: editedContent,
       emoji: selectedEmoji,
       categoryId: selectedCategory.id,
     };
-    
-    // Si hay un archivo nuevo, agregarlo a los datos
+
     if (mediaFiles.length > 0 && mediaFiles[0].file) {
       updatedData.mediaFile = mediaFiles[0].file;
     }
-    
-    // Si el usuario eliminó el archivo multimedia, indicarlo
+
     if (existingMedia && mediaFiles.length === 0) {
       updatedData.removeMedia = true;
     }
-    
-    // Llamar a la función de guardar del componente padre
+
     onSave(updatedData);
   };
   
@@ -115,64 +103,55 @@ const EditPost = ({ post, onSave, onCancel }) => {
     setMediaType(null);
     setExistingMedia(false);
   };
-  
-  // Manejar clic en botón de imagen o video
+
   const handleMediaButtonClick = (type) => {
     setMediaType(type);
     setShowEmojiPicker(false);
     setShowCategories(false);
-    // Si cambiamos de tipo, resetear las selecciones
+
     if (mediaType !== type) {
       setMediaFiles([]);
       setExistingMedia(false);
     }
-    // Abrir selector de archivos
+
     fileInputRef.current.click();
   };
   
-  // Función para manejar la carga de archivos
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    // Solo permitimos un archivo a la vez
     const file = files[0];
     const url = URL.createObjectURL(file);
     setMediaFiles([{ file, url }]);
     setExistingMedia(false);
   };
-  
-  // Manejar selección de emoji
+
   const handleEmojiSelect = () => {
     setShowEmojiPicker(!showEmojiPicker);
     setShowCategories(false);
   };
 
-  // Seleccionar emoji específico
   const selectEmoji = (emoji) => {
     setSelectedEmoji(emoji);
-    // Cerrar selector de emojis
+
     setShowEmojiPicker(false);
   };
 
-  // Eliminar el emoji seleccionado
   const removeEmoji = () => {
     setSelectedEmoji(null);
   };
-  
-  // Manejar selección de categoría
+
   const handleCategorySelect = () => {
     setShowCategories(!showCategories);
     setShowEmojiPicker(false);
   };
-  
-  // Seleccionar categoría específica
+
   const selectCategory = (category) => {
     setSelectedCategory(category);
     setShowCategories(false);
   };
 
-  // Renderizar previsualización de medios
   const renderMediaPreview = () => {
     if (mediaFiles.length === 0) return null;
     
@@ -226,8 +205,7 @@ const EditPost = ({ post, onSave, onCancel }) => {
         className="w-full bg-gray-700 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mb-2"
         rows={4}
       />
-      
-      {/* Mostrar la categoría seleccionada */}
+
       {selectedCategory && (
         <div className="items-center mb-3 bg-gray-700 px-2 py-1 rounded-full text-sm inline-block">
           <span>Categoría: {selectedCategory.nombre}</span>
@@ -242,8 +220,7 @@ const EditPost = ({ post, onSave, onCancel }) => {
           </button>
         </div>
       )}
-      
-      {/* Usar EmojiDisplay para emoji seleccionado */}
+
       {selectedEmoji && (
         <div className="mt-3 mb-3">
           <EmojiDisplay 
@@ -254,8 +231,7 @@ const EditPost = ({ post, onSave, onCancel }) => {
           />
         </div>
       )}
-      
-      {/* Selector de categorías */}
+
       {showCategories && (
         <div className="mt-3 mb-3 bg-gray-700 p-3 rounded-lg">
           <div className="grid grid-cols-2 gap-2">
@@ -277,8 +253,7 @@ const EditPost = ({ post, onSave, onCancel }) => {
           )}
         </div>
       )}
-      
-      {/* Selector de emojis */}
+
       {showEmojiPicker && (
         <div className="mt-3 mb-3 grid grid-cols-6 gap-2 bg-gray-700 p-3 rounded-lg">
           {emojis.map((emojiItem) => (
@@ -293,18 +268,16 @@ const EditPost = ({ post, onSave, onCancel }) => {
           ))}
         </div>
       )}
-      
-      {/* Previsualización de medio */}
+
       {renderMediaPreview()}
-      
-      {/* Input oculto para carga de archivos */}
+
       <input
         type="file"
         ref={fileInputRef}
         onChange={handleFileChange}
         accept={mediaType === 'image' ? 'image/*' : 'video/*'}
         className="hidden"
-        multiple={false} // No permitir múltiples archivos
+        multiple={false}
       />
       
       <div className="flex justify-between pt-3 border-t border-gray-700 mt-4">

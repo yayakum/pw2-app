@@ -6,7 +6,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import io from 'socket.io-client';
 const backendURL = import.meta.env.VITE_BACKEND_URL;
 
-// Componente para mostrar avatar de usuario con fetch de imagen
 const UserAvatar = ({ userId, username, size = 'w-12 h-12', showOnlineStatus = true, onlineUsers = {} }) => {
   const [profileImage, setProfileImage] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -95,11 +94,10 @@ const Chats = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [activeTab, setActiveTab] = useState('conversations');
   
-  // Estado para controlar cuándo hacer auto-scroll
+  // Controlar cuándo hacer auto-scroll
   const [shouldAutoScroll, setShouldAutoScroll] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   
-  // Obtener datos del usuario del localStorage
   const userJson = localStorage.getItem('user');
   const user = userJson ? JSON.parse(userJson) : null;
   const userId = user ? user.id : null;
@@ -114,12 +112,10 @@ const Chats = () => {
       };
       handleUserSelect(userFromNotification);
       
-      // Limpiar el state de location para evitar problemas en futuras navegaciones
       navigate('/chats', { replace: true });
     }
   }, [location.state]);
 
-  // Redirigir al login si no hay usuario autenticado
   useEffect(() => {
     if (!user || !token) {
       navigate('/login');
@@ -144,11 +140,10 @@ const Chats = () => {
 
     newSocket.on('receive_message', (message) => {
       if (selectedUser && 
-         (message.senderId === selectedUser.id || message.receiverId === selectedUser.id)) {
+        (message.senderId === selectedUser.id || message.receiverId === selectedUser.id)) {
         setMessages((prevMessages) => [...prevMessages, message]);
         
-        // Hacer scroll automático solo cuando se recibe un mensaje nuevo
-        setShouldAutoScroll(true);
+        setShouldAutoScroll(false);
         
         if (message.senderId === selectedUser.id) {
           newSocket.emit('mark_messages_read', { senderId: selectedUser.id });
@@ -315,7 +310,6 @@ const Chats = () => {
     }
   };
 
-  // Cargar datos iniciales
   useEffect(() => {
     if (userId && token) {
       fetchConversations();
@@ -324,7 +318,7 @@ const Chats = () => {
     }
   }, [userId]);
 
-  // Combinar seguidores y seguidos para la lista de contactos
+  // Filtrar contactos
   useEffect(() => {
     const combined = [...followers, ...following];
     const uniqueUsers = combined.filter((user, index, self) =>
@@ -338,7 +332,6 @@ const Chats = () => {
     setFilteredItems(contactsWithoutConversations);
   }, [followers, following, conversations]);
 
-  // Filtrar usuarios o conversaciones según la búsqueda
   useEffect(() => {
     if (searchQuery.trim() === '') return;
     
@@ -381,7 +374,6 @@ const Chats = () => {
       const data = await response.json();
       
       if (page === 1) {
-        // Es la primera carga, no hacer auto-scroll
         setMessages(data.data.reverse());
         setIsInitialLoad(true);
         setShouldAutoScroll(false);
@@ -402,7 +394,6 @@ const Chats = () => {
     }
   };
 
-  // Seleccionar un usuario para chatear
   const handleUserSelect = (user) => {
     setSelectedUser(user);
     setCurrentPage(1);
@@ -411,7 +402,6 @@ const Chats = () => {
     fetchMessages(user.id, 1);
   };
 
-  // Regresar a la lista de conversaciones/contactos
   const handleBackToList = () => {
     setSelectedUser(null);
     setEditingMessage(null);
@@ -427,16 +417,12 @@ const Chats = () => {
         receiverId: selectedUser.id,
         content: messageInput.trim()
       });
-      
-      // Hacer scroll automático cuando el usuario envía un mensaje
       setShouldAutoScroll(true);
       setIsInitialLoad(false);
-      
       setMessageInput('');
     }
   };
 
-  // Manejar pulsación de Enter
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       if (editingMessage) {
@@ -447,20 +433,17 @@ const Chats = () => {
     }
   };
 
-  // Eliminar un mensaje
   const handleDeleteMessage = (messageId) => {
     if (socket) {
       socket.emit('delete_message', { messageId });
     }
   };
 
-  // Editar un mensaje
   const handleEditMessage = (message) => {
     setEditingMessage(message.id);
     setEditText(message.content);
   };
 
-  // Guardar edición de mensaje
   const handleSaveEdit = () => {
     if (editText.trim() && socket && editingMessage) {
       socket.emit('edit_message', {
@@ -473,30 +456,25 @@ const Chats = () => {
     }
   };
 
-  // Cancelar edición
   const cancelEdit = () => {
     setEditingMessage(null);
     setEditText('');
   };
 
-  // Cargar más mensajes antiguos
   const loadMoreMessages = () => {
     if (selectedUser && currentPage < totalPages) {
       fetchMessages(selectedUser.id, currentPage + 1);
     }
   };
 
-  // Auto-scroll: inmediato en carga inicial, suave para mensajes nuevos
   useEffect(() => {
     if (messages.length > 0) {
       if (isInitialLoad && currentPage === 1) {
-        // Carga inicial: scroll inmediato sin animación al final
         messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
         setIsInitialLoad(false);
       } else if (shouldAutoScroll && !isInitialLoad) {
-        // Mensajes nuevos: scroll suave
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        setShouldAutoScroll(false);
+        setShouldAutoScroll(true);
       }
     }
   }, [messages, shouldAutoScroll, isInitialLoad, currentPage]);

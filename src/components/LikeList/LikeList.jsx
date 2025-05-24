@@ -13,25 +13,23 @@ const LikeList = ({ isOpen, onClose, postId }) => {
     pages: 0
   });
   const [followStatus, setFollowStatus] = useState({});
-  const [profileImages, setProfileImages] = useState({}); // Estado para las imágenes de perfil
-  const [loadingImages, setLoadingImages] = useState({}); // Estado para loading de imágenes
+  const [profileImages, setProfileImages] = useState({});
+  const [loadingImages, setLoadingImages] = useState({});
   
   const navigate = useNavigate();
 
-  // Cargar likes cuando se abre el modal
   useEffect(() => {
     if (isOpen && postId) {
       fetchLikes();
     }
   }, [isOpen, postId, pagination.page]);
 
-  // Función para cargar la imagen de perfil de un usuario específico
+  // Función para cargar la imagen de perfil
   const fetchUserProfileImage = async (userId) => {
     try {
       const token = localStorage.getItem('token');
       if (!token) return null;
 
-      // Marcar como cargando
       setLoadingImages(prev => ({ ...prev, [userId]: true }));
 
       const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id;
@@ -65,7 +63,6 @@ const LikeList = ({ isOpen, onClose, postId }) => {
     return null;
   };
 
-  // Verificar el estado de seguimiento para cada usuario
   const checkFollowStatus = async (userId) => {
     try {
       const token = localStorage.getItem('token');
@@ -73,8 +70,7 @@ const LikeList = ({ isOpen, onClose, postId }) => {
       if (!token) {
         throw new Error('No hay token de autenticación');
       }
-      
-      // Obtener los usuarios que sigues
+
       const response = await fetch(`${backendURL}/getUserFollowing/${JSON.parse(localStorage.getItem('user')).id}`, {
         method: 'GET',
         headers: {
@@ -88,8 +84,7 @@ const LikeList = ({ isOpen, onClose, postId }) => {
       }
       
       const data = await response.json();
-      
-      // Verificar si el usuario está en la lista de seguidos
+
       const isFollowing = data.data && data.data.some(follow => 
         follow.seguido && follow.seguido.id === parseInt(userId)
       );
@@ -101,7 +96,6 @@ const LikeList = ({ isOpen, onClose, postId }) => {
     }
   };
 
-  // Función para obtener los likes de una publicación
   const fetchLikes = async () => {
     try {
       setLoading(true);
@@ -126,41 +120,34 @@ const LikeList = ({ isOpen, onClose, postId }) => {
       }
       
       const data = await response.json();
-      
-      // Actualizar los likes
+
       const likesData = data.data || [];
       setLikes(likesData);
-      
-      // Actualizar la paginación
+
       if (data.pagination) {
         setPagination(data.pagination);
       }
-      
-      // Verificar el estado de seguimiento para cada usuario
+
       const newFollowStatus = {};
       const currentUserId = JSON.parse(localStorage.getItem('user')).id;
-      
-      // Cargar imágenes de perfil y verificar estado de seguimiento para cada usuario
+
       for (const like of likesData) {
         const userId = like.usuario?.id;
         
         if (!userId) continue;
-        
-        // Cargar imagen de perfil
+
         if (!profileImages[userId]) {
           fetchUserProfileImage(userId);
         }
         
-        // No necesitamos verificar para el usuario actual
         if (userId === parseInt(currentUserId)) {
           continue;
         }
-        
-        // Si ya tenemos la información de isFollowing en la respuesta
+
         if (like.isFollowing !== undefined) {
           newFollowStatus[userId] = like.isFollowing;
         } else {
-          // Si no tenemos la información, verificamos manualmente
+          
           try {
             newFollowStatus[userId] = await checkFollowStatus(userId);
           } catch (err) {
@@ -180,7 +167,6 @@ const LikeList = ({ isOpen, onClose, postId }) => {
     }
   };
 
-  // Función para seguir a un usuario
   const handleFollow = async (userId) => {
     try {
       const token = localStorage.getItem('token');
@@ -201,7 +187,6 @@ const LikeList = ({ isOpen, onClose, postId }) => {
         throw new Error('Error al seguir al usuario');
       }
       
-      // Actualizar el estado de seguimiento
       setFollowStatus({
         ...followStatus,
         [userId]: true
@@ -213,7 +198,6 @@ const LikeList = ({ isOpen, onClose, postId }) => {
     }
   };
 
-  // Función para dejar de seguir a un usuario
   const handleUnfollow = async (userId) => {
     try {
       const token = localStorage.getItem('token');
@@ -234,7 +218,6 @@ const LikeList = ({ isOpen, onClose, postId }) => {
         throw new Error('Error al dejar de seguir al usuario');
       }
       
-      // Actualizar el estado de seguimiento
       setFollowStatus({
         ...followStatus,
         [userId]: false
@@ -246,28 +229,23 @@ const LikeList = ({ isOpen, onClose, postId }) => {
     }
   };
 
-  // Función para ir a la página anterior
   const handlePrevPage = () => {
     if (pagination.page > 1) {
       setPagination({ ...pagination, page: pagination.page - 1 });
     }
   };
 
-  // Función para ir a la página siguiente
   const handleNextPage = () => {
     if (pagination.page < pagination.pages) {
       setPagination({ ...pagination, page: pagination.page + 1 });
     }
   };
 
-  
-  // Si el modal no está abierto, no renderizar nada
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm shadow-2xl bg-black/50">
       <div className="bg-gray-800 rounded-lg w-full max-w-md overflow-hidden max-h-[80vh] flex flex-col">
-        {/* Encabezado */}
         <div className="flex justify-between items-center px-4 py-3 border-b border-gray-700 bg-gray-800">
           <div className="flex items-center">
             <Heart size={20} className="text-red-500 mr-2" />
@@ -282,7 +260,6 @@ const LikeList = ({ isOpen, onClose, postId }) => {
           </button>
         </div>
         
-        {/* Contenido del modal */}
         <div className="flex-grow overflow-y-auto p-1">
           {loading && (
             <div className="flex justify-center items-center p-8">
@@ -324,15 +301,10 @@ const LikeList = ({ isOpen, onClose, postId }) => {
                   }
                 };
 
-                // Obtener el ID del usuario actual
                 const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id;
                 const isCurrentUser = like.usuario?.id === parseInt(currentUserId);
                 const userId = like.usuario?.id;
-                
-                // Determinar si estamos siguiendo a este usuario
                 const isFollowing = isCurrentUser ? false : (followStatus[userId] || false);
-                
-                // Obtener la imagen de perfil y estado de carga
                 const userProfileImage = profileImages[userId];
                 const isLoadingImage = loadingImages[userId];
                 
@@ -340,7 +312,6 @@ const LikeList = ({ isOpen, onClose, postId }) => {
                   <li key={like.id} className="py-3 px-4 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
-                        {/* Avatar del usuario */}
                         <div 
                           className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500 cursor-pointer overflow-hidden" 
                           onClick={handleProfileClick}
@@ -359,7 +330,6 @@ const LikeList = ({ isOpen, onClose, postId }) => {
                           )}
                         </div>
                         
-                        {/* Información del usuario */}
                         <div className="ml-3">
                           <div className="text-white font-medium">{like.usuario?.username || 'Usuario'}</div>
                           <div className="text-gray-400 text-sm truncate max-w-[200px]">
@@ -368,7 +338,6 @@ const LikeList = ({ isOpen, onClose, postId }) => {
                         </div>
                       </div>
                       
-                      {/* Botón de seguir/dejar de seguir (no mostrar para el propio usuario) */}
                       {!isCurrentUser && (
                         <button 
                           onClick={() => isFollowing ? handleUnfollow(like.usuario.id) : handleFollow(like.usuario.id)}
@@ -389,7 +358,6 @@ const LikeList = ({ isOpen, onClose, postId }) => {
           )}
         </div>
         
-        {/* Paginación */}
         {pagination.pages > 1 && (
           <div className="border-t border-gray-700 px-4 py-3 flex justify-between items-center">
             <button 

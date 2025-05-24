@@ -19,7 +19,7 @@ const Dashboard = () => {
   const [isFollowingSomeone, setIsFollowingSomeone] = useState(true);
   const [suggestedUsers, setSuggestedUsers] = useState([]);
 
-  // Función para formatear la fecha y hora en formato "hace X tiempo"
+  // Función para formatear la fecha y hora
   const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -50,7 +50,6 @@ const Dashboard = () => {
         throw new Error('No hay token de autenticación o información de usuario');
       }
       
-      // Primero, verificamos si el usuario sigue a alguien
       const followingResponse = await fetch(`${backendURL}/getUserFollowing/${userId}`, {
         method: 'GET',
         headers: {
@@ -68,7 +67,6 @@ const Dashboard = () => {
       
       setIsFollowingSomeone(hasFollowing);
       
-      // Si no sigue a nadie, obtenemos sugerencias de usuarios para mostrar
       if (!hasFollowing) {
         await fetchSuggestedUsers();
         setPosts([]);
@@ -76,7 +74,6 @@ const Dashboard = () => {
         return;
       }
       
-      // Si sigue a alguien, obtener las publicaciones de los usuarios seguidos
       const response = await fetch(`${backendURL}/getFeedPosts`, {
         method: 'GET',
         headers: {
@@ -91,15 +88,12 @@ const Dashboard = () => {
       
       const responseData = await response.json();
       
-      // Acceder al array de posts en data.data y configurar la paginación
       if (responseData.data && Array.isArray(responseData.data)) {
-        // Transforma los datos para que coincidan con la estructura esperada por el componente Post
         const formattedPosts = responseData.data.map(post => {
           return {
             id: post.id,
             userId: post.userId,
             description: post.description,
-            // Asegurarnos de incluir content y contentType para mostrar imágenes y videos
             content: post.content,
             contentType: post.contentType,
             createdAt: post.createdAt,
@@ -121,7 +115,6 @@ const Dashboard = () => {
                 
         setPosts(formattedPosts);
         
-        // Configurar la paginación si está disponible
         if (responseData.pagination) {
           setPagination(responseData.pagination);
         }
@@ -145,7 +138,7 @@ const Dashboard = () => {
         throw new Error('No hay token de autenticación');
       }
       
-      // Puedes implementar un endpoint específico para sugerencias, o usar la búsqueda
+      
       const response = await fetch(`${backendURL}/search?q=`, {
         method: 'GET',
         headers: {
@@ -169,7 +162,6 @@ const Dashboard = () => {
     }
   };
 
-  // Función para seguir a un usuario
   const handleFollowUser = async (userId) => {
     try {
       const token = localStorage.getItem('token');
@@ -190,7 +182,6 @@ const Dashboard = () => {
         throw new Error('Error al seguir al usuario');
       }
       
-      // Actualizar la lista de usuarios sugeridos
       setSuggestedUsers(prevUsers => 
         prevUsers.map(user => 
           user.id === userId 
@@ -199,7 +190,6 @@ const Dashboard = () => {
         )
       );
       
-      // Recargar el feed después de seguir a alguien
       fetchPosts();
       
     } catch (err) {
@@ -208,12 +198,10 @@ const Dashboard = () => {
     }
   };
 
-  // Cargar publicaciones cuando el componente se monta
   useEffect(() => {
     fetchPosts();
   }, []);
 
-  // Función para cargar más publicaciones (paginación)
   const loadMorePosts = async (page) => {
     try {
       const token = localStorage.getItem('token');
@@ -265,7 +253,6 @@ const Dashboard = () => {
                 
         setPosts(formattedPosts);
         
-        // Actualizar la paginación
         if (responseData.pagination) {
           setPagination(responseData.pagination);
         }
@@ -278,7 +265,6 @@ const Dashboard = () => {
     }
   };
 
-  // Renderizar sugerencias de usuarios aleatorias cuando no hay seguidos
   const renderSuggestedUsers = () => {
     if (!isFollowingSomeone && suggestedUsers.length > 0) {
       return (
@@ -329,18 +315,12 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-gray-200 bg-fixed">
       <Header/>
-
-      {/* Contenido principal */}
       <main className="container mx-auto px-4 py-6 flex flex-col md:flex-row relative">
-        {/* Sidebar izquierdo */}
         <LeftSidebar />
         
-        {/* Feed central */}
         <section className="w-full md:w-2/3 md:px-4">
-          {/* Componente para crear publicación */}
           <CreatePost onPostCreated={fetchPosts} />
           
-          {/* Estado de carga y error */}
           {loading && (
             <div className="flex justify-center items-center p-8">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
@@ -359,10 +339,8 @@ const Dashboard = () => {
             </div>
           )}
           
-          {/* Mostrar sugerencias de usuarios cuando no sigue a nadie */}
           {!loading && !error && !isFollowingSomeone && renderSuggestedUsers()}
           
-          {/* Mostrar mensaje cuando no hay publicaciones */}
           {!loading && !error && isFollowingSomeone && posts.length === 0 && (
             <div className="p-8 rounded-lg bg-gray-800 bg-opacity-60 shadow-md mb-6 text-center">
               <h3 className="text-xl font-medium mb-4">No hay publicaciones para mostrar</h3>
@@ -372,7 +350,6 @@ const Dashboard = () => {
             </div>
           )}
           
-          {/* Mostrar mensaje cuando no sigue a nadie */}
           {!loading && !error && !isFollowingSomeone && (
             <div className="p-8 rounded-lg bg-gray-800 bg-opacity-60 shadow-md mb-6 text-center">
               <h3 className="text-xl font-medium mb-4">¡Bienvenido a tu feed!</h3>
@@ -395,7 +372,7 @@ const Dashboard = () => {
             </div>
           )}
           
-          {/* Componente de lista de publicaciones */}
+          {/* lista de publicaciones */}
           {!loading && !error && posts.length > 0 && <PostsList posts={posts} onPostDelete={(postId) => {
             if (postId === "refresh") {
               fetchPosts();
@@ -404,8 +381,7 @@ const Dashboard = () => {
             }
           }} />}
           
-          {/* Paginación */}
-          {!loading && !error && posts.length > 0 && pagination.pages > 1 && (
+          {/* {!loading && !error && posts.length > 0 && pagination.pages > 1 && (
             <div className="flex justify-center mt-6 space-x-2">
               <button 
                 onClick={() => {
@@ -443,7 +419,7 @@ const Dashboard = () => {
                 Siguiente
               </button>
             </div>
-          )}
+          )} */}
         </section>
         
         {/* Sidebar derecho */}

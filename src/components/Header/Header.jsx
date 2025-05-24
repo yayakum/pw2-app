@@ -17,13 +17,11 @@ const Header = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Primero cargar datos básicos del localStorage
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
           setUserData(JSON.parse(storedUser));
         }
 
-        // Luego hacer petición al backend para obtener datos completos incluida la imagen
         const token = localStorage.getItem('token');
         if (token) {
           const response = await fetch(`${backendURL}/profile`, {
@@ -51,11 +49,9 @@ const Header = () => {
   }, []);
   
   const handleLogout = () => {
-    // Eliminar datos de autenticación
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     
-    // Redirigir al login
     navigate('/');
   };
 
@@ -71,7 +67,6 @@ const Header = () => {
             </Link>
           </div>
           
-          {/* Iconos de navegación */}
           <div className="flex items-center space-x-4">
             <button>
               <NotificationCenter/>
@@ -89,7 +84,6 @@ const Header = () => {
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       console.error('Error al cargar imagen del header:', e);
-                      // Si falla la imagen, mostrar la inicial
                       e.target.style.display = 'none';
                       e.target.nextSibling.style.display = 'block';
                     }}

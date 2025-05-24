@@ -9,7 +9,6 @@ import MediaGallery from '../../components/MediaGallery/MediaGallery';
 import { useNavigate } from 'react-router-dom';
 const backendURL = import.meta.env.VITE_BACKEND_URL;
 
-// Componente para mostrar avatar de usuario con fetch de imagen
 const UserAvatar = ({ userId, username, size = 'w-10 h-10', className = '' }) => {
   const [profileImage, setProfileImage] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -70,7 +69,6 @@ const UserAvatar = ({ userId, username, size = 'w-10 h-10', className = '' }) =>
   );
 };
 
-// Componente para mostrar una tarjeta de astronauta en la lista
 const AstronautCard = ({ astronaut, isProfile = false }) => {
   const navigate = useNavigate();
   const [isFollowing, setIsFollowing] = useState(astronaut.isFollowing || false);
@@ -79,7 +77,6 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
     return astronaut?.username || "Usuario";
   };
 
-  // Función para manejar el seguimiento
   const handleFollow = async (e) => {
     e.stopPropagation();
     try {
@@ -112,7 +109,6 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
     }
   };
   
-  // Navegar al perfil del astronauta
   const navigateToProfile = () => {
     navigate(`/Profile/${astronaut.id}`);
   };
@@ -121,14 +117,11 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
     <div className="bg-gray-800 bg-opacity-80 rounded-lg p-4 shadow-lg mb-3 w-full">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          {/* Avatar del usuario */}
           <UserAvatar 
             userId={astronaut.id}
             username={getUserName()}
             className="cursor-pointer"
           />
-          
-          {/* Información del usuario */}
           <div>
             <h3 className="font-bold text-white">{astronaut.username || 'Astronauta Cósmico'}</h3>
             <div className="flex items-center text-sm text-gray-400">
@@ -138,14 +131,12 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
                   : 'marzo de 2025'}
               </span>
             </div>
-
             {astronaut.bio && (
               <p className="text-sm text-gray-300 mt-1">{astronaut.bio}</p>
             )}
           </div>
         </div>
         
-        {/* Botones de acción */}
         <div className="flex space-x-2">
           {!isProfile && (
             <button
@@ -173,7 +164,7 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
   );
 };
 
-// Componente para la lista de astronautas
+// Componente para la lista de usuarios
 const AstronautsList = ({ astronauts, loading, error, onRetry }) => {
   if (loading) {
     return (
@@ -225,15 +216,11 @@ const Profile = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Estados para las publicaciones
   const [posts, setPosts] = useState([]);
   const [mediaPosts, setMediaPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [postsError, setPostsError] = useState(null);
   const [refreshPosts, setRefreshPosts] = useState(0);
-
-  // Estados para seguidores y seguidos
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
   const [loadingFollowers, setLoadingFollowers] = useState(false);
@@ -242,7 +229,6 @@ const Profile = () => {
   const [followingError, setFollowingError] = useState(null);
   const [refreshFollow, setRefreshFollow] = useState(0);
 
-  // Función para formatear la fecha y hora en formato "hace X tiempo"
   const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -262,7 +248,7 @@ const Profile = () => {
     }
   };
 
-  // Obtener datos del usuario al cargar el componente
+  // Obtener datos del usuario
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -434,7 +420,6 @@ const Profile = () => {
             followers: followerCount
           }));
           
-          // Formatear los datos sin depender de profilePic pre-cargado
           const formattedFollowers = responseData.data.map(follower => ({
             id: follower.seguidor.id,
             username: follower.seguidor.username,
@@ -461,7 +446,6 @@ const Profile = () => {
     }
   }, [loading, activeTab, refreshFollow]);
 
-  // Cargar seguidos
   useEffect(() => {
     const fetchFollowing = async () => {
       setLoadingFollowing(true);
@@ -498,7 +482,6 @@ const Profile = () => {
             following: followingCount
           }));
           
-          // Formatear los datos sin depender de profilePic pre-cargado
           const formattedFollowing = responseData.data.map(follow => ({
             id: follow.seguido.id,
             username: follow.seguido.username,
@@ -532,12 +515,10 @@ const Profile = () => {
     profilePic: userData.profilePic
   };
 
-  // Manejar la creación de una nueva publicación
   const handlePostCreated = () => {
     setRefreshPosts(prev => prev + 1);
   };
 
-  // Manejar la eliminación de una publicación
   const handlePostDeleted = (postId) => {
     if (postId === "refresh") {
       setRefreshPosts(prev => prev + 1);
@@ -548,12 +529,10 @@ const Profile = () => {
     setMediaPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
   };
   
-  // Manejar actualización de seguidores/seguidos
   const handleFollowUpdate = () => {
     setRefreshFollow(prev => prev + 1);
   };
 
-  // Renderizar el contenido según la pestaña activa
   const renderTabContent = () => {
     switch(activeTab) {
       case 'posts':
@@ -706,7 +685,6 @@ const Profile = () => {
     }
   };
 
-  // Mostrar un indicador de carga mientras obtenemos los datos
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-gray-200 bg-fixed">
@@ -743,7 +721,6 @@ const Profile = () => {
         <section className="w-full md:w-2/3 md:px-4">
           <div className="bg-gray-800 rounded-lg shadow-md p-6">
             <div className="flex flex-col sm:flex-row sm:items-center relative">
-              {/* Avatar principal del perfil */}
               <div className="w-24 h-24 rounded-full bg-purple-900 flex items-center justify-center border-4 border-purple-500 mb-4 sm:mb-0 overflow-hidden">
                 {userData.profilePic ? (
                   <img 

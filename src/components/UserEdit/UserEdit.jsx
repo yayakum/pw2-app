@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Lock, Mail, X, Upload, Rocket } from 'lucide-react';
 const backendURL = import.meta.env.VITE_BACKEND_URL;
+
 const UserEdit = ({ isOpen, onClose, initialUser }) => {
   const [userData, setUserData] = useState({
     username: '',
@@ -15,29 +16,25 @@ const UserEdit = ({ isOpen, onClose, initialUser }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Inicializar datos del usuario cuando el componente se monta o cuando cambia initialUser
   useEffect(() => {
-  if (initialUser) {
-    // Establecer los datos iniciales
-    setUserData(prevData => ({
-      ...prevData,
-      username: initialUser.name || '',
-      email: initialUser.email || '',
-      bio: initialUser.bio || ''
-    }));
+    if (initialUser) {
+      setUserData(prevData => ({
+        ...prevData,
+        username: initialUser.name || '',
+        email: initialUser.email || '',
+        bio: initialUser.bio || ''
+      }));
 
-    // Priorizar la imagen del initialUser (viene del backend)
-    if (initialUser.profilePic) {
-      setPreviewImage(`data:image;base64,${initialUser.profilePic}`);
-    } else {
-      // Fallback: si no hay imagen en initialUser, intentar desde localStorage
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-      if (storedUser.profilePic) {
-        setPreviewImage(`data:image;base64,${storedUser.profilePic}`);
+      if (initialUser.profilePic) {
+        setPreviewImage(`data:image;base64,${initialUser.profilePic}`);
+      } else {
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        if (storedUser.profilePic) {
+          setPreviewImage(`data:image;base64,${storedUser.profilePic}`);
+        }
       }
     }
-  }
-}, [initialUser, isOpen]);
+  }, [initialUser, isOpen]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -64,33 +61,60 @@ const UserEdit = ({ isOpen, onClose, initialUser }) => {
     setSuccess('');
     setIsLoading(true);
 
-    // Validación básica
-    if (userData.password !== userData.confirmPassword) {
-      setError('Las contraseñas no coinciden');
+    if (userData.username && userData.username.length < 3) {
+      setError('El nombre de usuario debe tener al menos 3 caracteres');
       setIsLoading(false);
       return;
     }
 
+    if (userData.email && userData.email.trim() !== '') {
+      const allowedDomains = ['@gmail.com', '@outlook.com', '@hotmail.com'];
+      const emailDomain = userData.email.toLowerCase();
+      const isValidDomain = allowedDomains.some(domain => emailDomain.endsWith(domain));
+      
+      if (!isValidDomain) {
+        setError('Solo se permiten correos de Gmail, Outlook o Hotmail');
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    if (userData.password && userData.password.trim() !== '') {
+      if (userData.password.length <= 5) {
+        setError('La contraseña debe tener más de 5 caracteres');
+        setIsLoading(false);
+        return;
+      }
+      
+      if (!/\d/.test(userData.password)) {
+        setError('La contraseña debe contener al menos un número');
+        setIsLoading(false);
+        return;
+      }
+
+      if (userData.password !== userData.confirmPassword) {
+        setError('Las contraseñas no coinciden');
+        setIsLoading(false);
+        return;
+      }
+    }
+
     try {
-      // Obtener token del localStorage
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('No se encontró token de autenticación');
       }
 
-      // Crear FormData para enviar la información, incluyendo posiblemente un archivo
       const formData = new FormData();
       if (userData.username) formData.append('username', userData.username);
       if (userData.bio !== undefined) formData.append('bio', userData.bio);
       if (userData.password) formData.append('password', userData.password);
 
-      // Añadir la imagen si se seleccionó una nueva
       const fileInput = document.querySelector('input[type="file"]');
       if (fileInput.files[0]) {
         formData.append('profilePic', fileInput.files[0]);
       }
 
-      // Realizar la petición al backend
       const response = await fetch(`${backendURL}/updateprofile`, {
         method: 'PUT',
         headers: {
@@ -105,7 +129,6 @@ const UserEdit = ({ isOpen, onClose, initialUser }) => {
         throw new Error(data.error || 'Error al actualizar el perfil');
       }
 
-      // Actualizar la información del usuario en localStorage
       const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
       const updatedUser = {
         ...storedUser,
@@ -117,11 +140,9 @@ const UserEdit = ({ isOpen, onClose, initialUser }) => {
       localStorage.setItem('user', JSON.stringify(updatedUser));
 
       setSuccess('Perfil actualizado correctamente');
-      
-      // Esperar un segundo antes de cerrar para que se vea el mensaje de éxito
+
       setTimeout(() => {
         onClose();
-        // Recargar la página para mostrar los cambios
         window.location.reload();
       }, 1000);
     } catch (err) {
@@ -137,7 +158,6 @@ const UserEdit = ({ isOpen, onClose, initialUser }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="w-full max-w-md p-8 rounded-xl bg-gray-900 bg-opacity-90 backdrop-blur-sm shadow-2xl border border-purple-500 relative">
-        {/* Botón de cierre */}
         <button 
           onClick={onClose} 
           className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
@@ -151,7 +171,6 @@ const UserEdit = ({ isOpen, onClose, initialUser }) => {
           </h2>
           <p className="text-blue-300 mt-2">Actualiza tu identidad intergaláctica</p>
           
-          {/* Mensajes de error o éxito */}
           {error && (
             <div className="mt-4 p-2 bg-red-500 bg-opacity-70 text-white rounded-md">
               {error}
@@ -163,7 +182,6 @@ const UserEdit = ({ isOpen, onClose, initialUser }) => {
             </div>
           )}
           
-          {/* Selector de imagen de perfil */}
           <div className="mt-6 flex justify-center">
             <div className="relative group">
               <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-purple-500 flex items-center justify-center bg-gray-800">
@@ -175,7 +193,6 @@ const UserEdit = ({ isOpen, onClose, initialUser }) => {
                     onError={(e) => {
                       console.error('Error al cargar imagen en UserEdit:', e);
                       console.log('URL de imagen:', e.target.src.substring(0, 100) + '...');
-                      // Si falla la imagen, mostrar el icono de fallback
                       setPreviewImage(null);
                     }}
                   />
@@ -202,7 +219,6 @@ const UserEdit = ({ isOpen, onClose, initialUser }) => {
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Nombre de usuario */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <User size={20} className="text-purple-400" />
@@ -216,8 +232,6 @@ const UserEdit = ({ isOpen, onClose, initialUser }) => {
               placeholder="Nombre de explorador"
             />
           </div>
-          
-          {/* Email (solo visualización) */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Mail size={20} className="text-purple-400" />
@@ -231,8 +245,6 @@ const UserEdit = ({ isOpen, onClose, initialUser }) => {
               placeholder="Email cósmico"
             />
           </div>
-
-          {/* Biografía */}
           <div>
             <textarea
               name="bio"
@@ -243,8 +255,6 @@ const UserEdit = ({ isOpen, onClose, initialUser }) => {
               rows={3}
             />
           </div>
-
-          {/* Nueva contraseña */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Lock size={20} className="text-purple-400" />
@@ -258,8 +268,6 @@ const UserEdit = ({ isOpen, onClose, initialUser }) => {
               placeholder="Nueva contraseña estelar (opcional)"
             />
           </div>
-
-          {/* Confirmar nueva contraseña */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Lock size={20} className="text-purple-400" />
@@ -273,8 +281,6 @@ const UserEdit = ({ isOpen, onClose, initialUser }) => {
               placeholder="Confirmar nueva contraseña"
             />
           </div>
-          
-          {/* Botón de guardar */}
           <div>
             <button
               type="submit"

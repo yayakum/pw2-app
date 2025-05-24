@@ -6,8 +6,8 @@ const backendURL = import.meta.env.VITE_BACKEND_URL;
 const CreatePost = ({onPostCreated }) => {
   const [userData, setUserData] = useState(null);
   const [postText, setPostText] = useState('');
-  const [mediaType, setMediaType] = useState(null); // 'image', 'video', o null
-  const [mediaFiles, setMediaFiles] = useState([]); // Array de archivos seleccionados
+  const [mediaType, setMediaType] = useState(null);
+  const [mediaFiles, setMediaFiles] = useState([]); 
   const [selectedEmoji, setSelectedEmoji] = useState(null);
   const [showEmojiSelector, setShowEmojiSelector] = useState(false);
   const [categories, setCategories] = useState([]);
@@ -25,14 +25,13 @@ const CreatePost = ({onPostCreated }) => {
     navigate(`/Profile`);
   };
 
-  // Cargar datos del usuario desde localStorage cuando el componente se monta
+  // Cargar datos del usuario desde localStorage
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUserData(JSON.parse(storedUser));
     }
     
-    // Cargar categorías desde el backend
     const fetchCategories = async () => {
       try {
         const response = await fetch(`${backendURL}/getAllCategories`);
@@ -41,7 +40,6 @@ const CreatePost = ({onPostCreated }) => {
         }
         const data = await response.json();
         setCategories(data);
-        // Establecer la primera categoría como predeterminada si existe
         if (data.length > 0) {
           setSelectedCategory(data[0]);
         }
@@ -54,10 +52,9 @@ const CreatePost = ({onPostCreated }) => {
     fetchCategories();
   }, []);
 
-  // Referencia para el input de archivos
   const fileInputRef = React.useRef(null);
 
-  // Lista de emojis para los sentimientos
+  // Lista de emojis
   const emojis = [
     { id: 'happy', emoji: '😀', label: 'Feliz' },
     { id: 'sad', emoji: '😢', label: 'Triste' },
@@ -67,31 +64,27 @@ const CreatePost = ({onPostCreated }) => {
     { id: 'angry', emoji: '😡', label: 'Enojado' }
   ];
 
-  // Manejar clic en botón de imagen o video
   const handleMediaButtonClick = (type) => {
     setMediaType(type);
     setShowEmojiSelector(false);
     setShowCategories(false);
-    // Si cambiamos de tipo, resetear las selecciones
+
     if (mediaType !== type) {
       setMediaFiles([]);
     }
-    // Abrir selector de archivos
+
     fileInputRef.current.click();
   };
 
-  // Manejar selección de archivos
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    // Tanto para video como para imagen, solo permitimos uno
     if (files.length > 0) {
       const file = files[0];
       const url = URL.createObjectURL(file);
       setMediaFiles([{ file, url }]);
       
-      // Imprimir el tipo de archivo para depuración
       console.log('Tipo de archivo seleccionado:', file.type);
     }
   };
@@ -131,16 +124,13 @@ const CreatePost = ({onPostCreated }) => {
     setSelectedEmoji(null);
   };
   
-  // Determinar el tipo MIME correcto basado en la extensión del archivo
   const getMimeType = (file) => {
     if (!file) return null;
     
-    // Si el navegador proporciona el tipo MIME, usarlo
     if (file.type) {
       return file.type;
     }
     
-    // Si no hay tipo, intentar detectarlo por la extensión
     const fileName = file.name.toLowerCase();
     
     // Para imágenes
@@ -159,14 +149,13 @@ const CreatePost = ({onPostCreated }) => {
     if (fileName.endsWith('.avi')) return 'video/x-msvideo';
     if (fileName.endsWith('.flv')) return 'video/x-flv';
     
-    // Valores predeterminados según el tipo de medio
+    // Valores predeterminados
     if (mediaType === 'image') return 'image/jpeg';
     if (mediaType === 'video') return 'video/mp4';
     
     return null;
   };
   
-  // Limpiar mensajes después de un tiempo
   useEffect(() => {
     if (successMessage) {
       const timer = setTimeout(() => {
@@ -187,17 +176,14 @@ const CreatePost = ({onPostCreated }) => {
 
   // Publicar el contenido
   const handleSubmit = async () => {
-    // Limpiar mensajes anteriores
     setError(null);
     setSuccessMessage(null);
     
-    // Validar que haya descripción (obligatoria)
     if (!postText || postText.trim() === '') {
       setError('La descripción es obligatoria. Por favor escribe algo para publicar.');
       return;
     }
     
-    // Validar que haya categoría seleccionada (obligatoria)
     if (!selectedCategory) {
       setError('Por favor selecciona una categoría para tu publicación');
       return;
@@ -212,35 +198,27 @@ const CreatePost = ({onPostCreated }) => {
         throw new Error('No hay token de autenticación');
       }
       
-      // Crear un FormData para enviar archivos
       const formData = new FormData();
       
-      // Añadimos la descripción como 'description'
       formData.append('description', postText);
       formData.append('categoryId', selectedCategory.id);
       
-      // Solo añadir emoji si existe
       if (selectedEmoji) {
         formData.append('emoji', JSON.stringify(selectedEmoji));
       }
       
-      // Solo adjuntar archivo multimedia si existe
       if (mediaFiles.length > 0) {
         const file = mediaFiles[0].file;
         formData.append('file', file);
         
-        // Obtener el tipo MIME correcto para el archivo
         const contentType = getMimeType(file);
         console.log("Tipo de contenido detectado:", contentType);
         
-        // Añadir el tipo de contenido al formulario
         formData.append('contentType', contentType);
         
-        // También añadir fileType para mantener compatibilidad con el backend
         formData.append('fileType', contentType);
       }
       
-      // Para depuración - mostrar las entradas del FormData
       for (let [key, value] of formData.entries()) {
         console.log(`${key}: ${value instanceof File ? `File object (${value.type})` : value}`);
       }
@@ -259,10 +237,8 @@ const CreatePost = ({onPostCreated }) => {
         throw new Error(errorData.error || 'Error al crear la publicación');
       }
       
-      // Mostrar mensaje de éxito
       setSuccessMessage('¡Publicación creada con éxito!');
       
-      // Resetear el formulario
       setPostText('');
       setMediaFiles([]);
       setSelectedEmoji(null);
@@ -270,7 +246,6 @@ const CreatePost = ({onPostCreated }) => {
       setShowEmojiSelector(false);
       setShowCategories(false);
       
-      // Notificar al componente padre que se ha creado una publicación
       if (onPostCreated) {
         onPostCreated();
       }
@@ -287,7 +262,6 @@ const CreatePost = ({onPostCreated }) => {
   return (
     <div className="mb-6 p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md">
       <div className="flex items-center space-x-3 mb-4">
-        {/* Avatar con imagen de perfil o inicial */}
         <div 
           className="w-10 h-10 rounded-full flex items-center justify-center border-2 bg-purple-900 border-purple-500 cursor-pointer overflow-hidden" 
           onClick={handleProfileClick}
@@ -308,7 +282,6 @@ const CreatePost = ({onPostCreated }) => {
             {userData ? userData.username : 'Usuario'}
           </span>
           
-          {/* Usar EmojiDisplay para mostrar el emoji */}
           {selectedEmoji && (
             <div className="ml-2">
               <EmojiDisplay 
@@ -319,7 +292,6 @@ const CreatePost = ({onPostCreated }) => {
             </div>
           )}
           
-          {/* Mostrar categoría seleccionada */}
           {selectedCategory && (
             <div className="flex items-center ml-2 bg-gray-700 px-2 py-1 rounded-full text-sm">
               <span>Categoría: {selectedCategory.nombre}</span>
@@ -333,8 +305,7 @@ const CreatePost = ({onPostCreated }) => {
           )}
         </div>
       </div>
-      
-      {/* Mensajes de error y éxito */}
+
       {error && (
         <div className="bg-red-500 bg-opacity-70 p-3 rounded-lg mb-4 text-white text-sm flex items-center justify-between">
           <span>{error}</span>
@@ -363,7 +334,6 @@ const CreatePost = ({onPostCreated }) => {
         className={`w-full p-3 rounded-lg bg-gray-700 border-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-600 min-h-28`}
       />
       
-      {/* Previsualización de imagen */}
       {mediaType === 'image' && mediaFiles.length > 0 && (
         <div className="mt-3 mb-3 relative">
           <img 
@@ -383,7 +353,6 @@ const CreatePost = ({onPostCreated }) => {
         </div>
       )}
       
-      {/* Previsualización de video */}
       {mediaType === 'video' && mediaFiles.length > 0 && (
         <div className="relative mt-3 mb-3">
           <video 
@@ -403,7 +372,6 @@ const CreatePost = ({onPostCreated }) => {
         </div>
       )}
       
-      {/* Selector de emojis */}
       {showEmojiSelector && (
         <div className="mt-3 mb-3 grid grid-cols-6 gap-2 bg-gray-700 p-3 rounded-lg">
           {emojis.map((emojiItem) => (
@@ -419,7 +387,6 @@ const CreatePost = ({onPostCreated }) => {
         </div>
       )}
       
-      {/* Selector de categorías */}
       {showCategories && (
         <div className="mt-3 mb-3 bg-gray-700 p-3 rounded-lg">
           <div className="grid grid-cols-2 gap-2">
@@ -442,7 +409,6 @@ const CreatePost = ({onPostCreated }) => {
         </div>
       )}
 
-      {/* Input oculto para archivos */}
       <input
         type="file"
         ref={fileInputRef}
@@ -505,7 +471,6 @@ const CreatePost = ({onPostCreated }) => {
         </button>
       </div>
       
-      {/* Indicadores visuales para campos obligatorios */}
       <div className="mt-2 text-xs text-gray-400">
         <span className="text-red-400">*</span> Campos obligatorios: Descripción y categoría
       </div>

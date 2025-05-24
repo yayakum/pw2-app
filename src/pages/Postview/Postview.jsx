@@ -34,7 +34,6 @@ const Postview = () => {
         }
     };
 
-  // Cargar la publicación específica
     useEffect(() => {
     const fetchPost = async () => {
     try {
@@ -68,7 +67,6 @@ const Postview = () => {
         
         const postData = await response.json();
         
-        // Formatear el post para que sea compatible con el componente Post
         const formattedPost = {
             id: postData.id,
             userId: postData.userId,
@@ -79,7 +77,7 @@ const Postview = () => {
             usuario: postData.usuario,
             time: formatTimestamp(postData.createdAt),
             likes: postData._count?.likes || 0,
-            comments: postData._count?.likes || 0, // Usar likes como fallback si no hay comentarios
+            comments: postData._count?.likes || 0,
             hasLiked: postData.hasLiked || false,
             emojiData: postData.emojiData,
             categoryId: postData.categoryId,
@@ -101,20 +99,16 @@ const Postview = () => {
     fetchPost();
     }, [postId]);
 
-    // Manejar la eliminación del post
     const handlePostDelete = (deletedPostId) => {
         if (deletedPostId === post?.id) {
-        // Si se elimina el post que estamos viendo, redirigir al dashboard
             navigate('/Dashboard', { 
                 state: { message: 'Publicación eliminada correctamente' }
             });
         } else if (deletedPostId === "refresh") {
-        // Si es una actualización, recargar el post
         window.location.reload();
         }
     };
 
-    // Mostrar indicador de carga
     if (loading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-gray-200 bg-fixed">
@@ -127,14 +121,12 @@ const Postview = () => {
         );
     }
 
-    // Mostrar error si no se puede cargar el post
     if (error) {
         return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-gray-200 bg-fixed">
             <Header className="sticky top-0 z-10" />
             <div className="container mx-auto px-4 py-12">
             <div className="max-w-2xl mx-auto">
-                {/* Botón para volver */}
                 <div className="mb-4">
                 <button 
                     onClick={() => navigate(-1)}
@@ -144,7 +136,6 @@ const Postview = () => {
                     Volver
                 </button>
                 </div>
-
                 <div className="bg-red-500 bg-opacity-70 text-white p-6 rounded-lg text-center">
                 <AlertCircle size={48} className="mx-auto mb-4" />
                 <h2 className="text-xl font-bold mb-2">No se pudo cargar la publicación</h2>
@@ -170,16 +161,12 @@ const Postview = () => {
         );
     }
 
-    // Mostrar el post
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-gray-200 bg-fixed">
         <Header className="sticky top-0 z-10" />
-        
         <main className="container mx-auto px-4 py-6 flex flex-col md:flex-row relative">
             <LeftSidebar />
-
             <section className="w-full md:w-2/3 md:px-4">
-            {/* Botón para volver */}
             <div className="mb-4">
                 <button 
                 onClick={() => navigate(-1)}
@@ -189,8 +176,6 @@ const Postview = () => {
                 Volver
                 </button>
             </div>
-
-            {/* Mostrar el post usando el componente Post existente */}
             {post && (
                 <div className="max-w-2xl mx-auto">
                 <Post 

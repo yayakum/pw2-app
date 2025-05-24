@@ -7,7 +7,6 @@ import MediaGallery from '../../components/MediaGallery/MediaGallery';
 import { useNavigate, useParams } from 'react-router-dom';
 const backendURL = import.meta.env.VITE_BACKEND_URL;
 
-// Componente para mostrar avatar de usuario con fetch de imagen
 const UserAvatar = ({ userId, username, size = 'w-10 h-10', className = '' }) => {
   const [profileImage, setProfileImage] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -68,12 +67,10 @@ const UserAvatar = ({ userId, username, size = 'w-10 h-10', className = '' }) =>
   );
 };
 
-// Componente para mostrar una tarjeta de astronauta en la lista
 const AstronautCard = ({ astronaut, isProfile = false }) => {
   const navigate = useNavigate();
   const [isFollowing, setIsFollowing] = useState(astronaut.isFollowing || false);
   
-  // Obtener el ID del usuario actual
   const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id;
   const isCurrentUser = astronaut.id === parseInt(currentUserId);
 
@@ -82,11 +79,9 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
     return isCurrentUser ? `${username} (Tú)` : username;
   };
 
-  // Función para manejar el seguimiento
   const handleFollow = async (e) => {
     e.stopPropagation();
     
-    // No permitir seguirse a sí mismo
     if (isCurrentUser) return;
     
     try {
@@ -119,13 +114,10 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
     }
   };
   
-  // Navegar al perfil del astronauta
   const navigateToProfile = () => {
     if (isCurrentUser) {
-      // Si es el usuario actual, navegar a /Profile sin ID
       navigate('/Profile');
     } else {
-      // Si es otro usuario, navegar a /Profile/{id}
       navigate(`/Profile/${astronaut.id}`);
     }
   };
@@ -134,14 +126,12 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
     <div className="bg-gray-800 bg-opacity-80 rounded-lg p-4 shadow-lg mb-3 w-full">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          {/* Avatar del usuario */}
           <UserAvatar 
             userId={astronaut.id}
             username={astronaut?.username || "Usuario"}
             className="cursor-pointer"
           />
           
-          {/* Información del usuario */}
           <div>
             <h3 className="font-bold text-white">{getUserName()}</h3>
             <div className="flex items-center text-sm text-gray-400">
@@ -158,7 +148,6 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
           </div>
         </div>
         
-        {/* Botones de acción */}
         <div className="flex space-x-2">
           {!isProfile && !isCurrentUser && (
             <button
@@ -186,7 +175,7 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
   );
 };
 
-// Componente para la lista de astronautas
+// Componente para la lista de usuarios
 const AstronautsList = ({ astronauts, loading, error, onRetry }) => {
   if (loading) {
     return (
@@ -240,15 +229,13 @@ const ProfileUserFind = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
-  
-  // Estados para las publicaciones
+
   const [posts, setPosts] = useState([]);
   const [mediaPosts, setMediaPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [postsError, setPostsError] = useState(null);
   const [refreshPosts, setRefreshPosts] = useState(0);
 
-  // Estados para seguidores y seguidos
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
   const [loadingFollowers, setLoadingFollowers] = useState(false);
@@ -257,7 +244,6 @@ const ProfileUserFind = () => {
   const [followingError, setFollowingError] = useState(null);
   const [refreshFollow, setRefreshFollow] = useState(0);
 
-  // Función para formatear la fecha y hora en formato "hace X tiempo"
   const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -277,7 +263,6 @@ const ProfileUserFind = () => {
     }
   };
 
-  // Función para seguir/dejar de seguir usuario
   const handleFollowUser = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -304,8 +289,7 @@ const ProfileUserFind = () => {
       }
       
       setIsFollowing(!isFollowing);
-      
-      // Actualizar contador de seguidores
+
       setUserData(prev => ({
         ...prev,
         followers: isFollowing ? prev.followers - 1 : prev.followers + 1
@@ -316,7 +300,6 @@ const ProfileUserFind = () => {
     }
   };
 
-  // Obtener datos del usuario al cargar el componente
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -369,7 +352,6 @@ const ProfileUserFind = () => {
     fetchUserProfile();
   }, [userId]);
 
-  // Cargar las publicaciones del usuario
   useEffect(() => {
     const fetchUserPosts = async () => {
       setLoadingPosts(true);
@@ -443,7 +425,6 @@ const ProfileUserFind = () => {
     }
   }, [loading, userId, refreshPosts]);
 
-  // Cargar seguidores
   useEffect(() => {
     const fetchFollowers = async () => {
       setLoadingFollowers(true);
@@ -496,7 +477,6 @@ const ProfileUserFind = () => {
     }
   }, [loading, activeTab, userId, refreshFollow]);
 
-  // Cargar seguidos
   useEffect(() => {
     const fetchFollowing = async () => {
       setLoadingFollowing(true);
@@ -549,12 +529,10 @@ const ProfileUserFind = () => {
     }
   }, [loading, activeTab, userId, refreshFollow]);
 
-  // Manejar actualización de seguidores/seguidos
   const handleFollowUpdate = () => {
     setRefreshFollow(prev => prev + 1);
   };
 
-  // Renderizar el contenido según la pestaña activa
   const renderTabContent = () => {
     switch(activeTab) {
       case 'posts':
@@ -694,7 +672,6 @@ const ProfileUserFind = () => {
     }
   };
 
-  // Mostrar un indicador de carga mientras obtenemos los datos
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-gray-200 bg-fixed">
@@ -707,7 +684,6 @@ const ProfileUserFind = () => {
     );
   }
 
-  // Mostrar error si no se puede cargar el perfil
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-gray-200 bg-fixed">
@@ -731,12 +707,9 @@ const ProfileUserFind = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-gray-200 bg-fixed">
       <Header className="sticky top-0 z-10" />
-      
       <main className="container mx-auto px-4 py-6 flex flex-col md:flex-row relative">
         <LeftSidebar />
-
         <section className="w-full md:w-2/3 md:px-4">
-          {/* Botón para volver */}
           <div className="mb-4">
             <button 
               onClick={() => navigate(-1)}
@@ -747,10 +720,8 @@ const ProfileUserFind = () => {
             </button>
           </div>
 
-          {/* Cabecera de perfil */}
           <div className="bg-gray-800 rounded-lg shadow-md p-6">
             <div className="flex flex-col sm:flex-row sm:items-center relative">
-              {/* Avatar principal del perfil */}
               <div className="w-24 h-24 rounded-full bg-purple-900 flex items-center justify-center border-4 border-purple-500 mb-4 sm:mb-0 overflow-hidden">
                 {userData.profilePic ? (
                   <img 
@@ -793,8 +764,6 @@ const ProfileUserFind = () => {
                   </div>
                 </div>
               </div>
-              
-              {/* Botón de seguir */}
               <button
                 onClick={handleFollowUser}
                 className={`mt-4 sm:mt-0 sm:ml-auto px-4 py-2 rounded-md text-white flex items-center transition-colors cursor-pointer ${
@@ -808,8 +777,6 @@ const ProfileUserFind = () => {
               </button>
             </div>
           </div>
-
-          {/* Pestañas de navegación */}
           <div className="mt-6 flex flex-wrap gap-2">
             <button 
               className={`px-4 py-2 rounded-lg text-white flex items-center transition-colors ${activeTab === 'posts' ? 'bg-gradient-to-r from-blue-900 via-purple-900 to-blue-900 bg-opacity-100' : 'bg-gray-800 hover:bg-gray-700'} cursor-pointer`}
@@ -847,8 +814,6 @@ const ProfileUserFind = () => {
               Multimedia
             </button>
           </div>
-
-          {/* Contenido de la pestaña activa */}
           <div className="mt-6">
             {renderTabContent()}
           </div>

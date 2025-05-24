@@ -59,8 +59,7 @@ const Login = () => {
       };
       
       localStorage.setItem('user', JSON.stringify(userData));
-      
-      // Redirigir al dashboard
+
       navigate('/Dashboard');
     } catch (err) {
       setError(err.message || "Error al procesar la solicitud");
@@ -72,7 +71,6 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-black">
-      {/* Estrellas animadas (efecto simple) */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="stars-1 fixed w-2 h-2 rounded-full bg-white top-10 left-20 animate-pulse"></div>
         <div className="stars-2 fixed w-1 h-1 rounded-full bg-white top-20 left-80 animate-pulse"></div>
@@ -81,15 +79,13 @@ const Login = () => {
         <div className="stars-5 fixed w-1 h-1 rounded-full bg-white bottom-20 left-40 animate-pulse"></div>
       </div>
       
-      {/* Formulario de login */}
       <div className="w-full max-w-md p-8 rounded-xl bg-gray-900 bg-opacity-70 backdrop-blur-sm shadow-2xl border border-purple-500">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500">
             Acceso Espacial
           </h2>
           <p className="text-blue-300 mt-2">Ingresa a tu portal intergaláctico</p>
-          
-          {/* Mensaje de error */}
+
           {error && (
             <div className="mt-4 p-2 bg-red-500 bg-opacity-70 text-white rounded-md">
               {error}
@@ -126,7 +122,7 @@ const Login = () => {
             />
           </div>
           
-          <div className="flex items-center justify-between">
+          {/* <div className="flex items-center justify-between">
             <div className="flex items-center">
               <input
                 id="remember-me"
@@ -143,7 +139,7 @@ const Login = () => {
                 ¿Olvidaste tu contraseña?
               </a>
             </div>
-          </div>
+          </div> */}
           
           <div>
             <button

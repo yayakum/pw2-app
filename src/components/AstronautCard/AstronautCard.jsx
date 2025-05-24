@@ -22,14 +22,12 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
                     return;
                 }
 
-                // Si ya tenemos la imagen en el objeto astronaut, usarla
                 if (astronaut.profilePic) {
                     setProfileImage(astronaut.profilePic);
                     setLoading(false);
                     return;
                 }
 
-                // Si no, hacer fetch para obtener la imagen
                 const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id;
                 const isCurrentUser = astronaut.id === parseInt(currentUserId);
                 
@@ -93,7 +91,6 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
         }
     };
     
-    // Navegar al perfil del astronauta
     const navigateToProfile = () => {
         navigate(`/Profile/${astronaut.id}`);
     };
@@ -102,7 +99,6 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
         <div className="bg-gray-800 bg-opacity-80 rounded-lg p-4 shadow-lg mb-3 w-full">
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                    {/* Avatar del usuario */}
                     <div className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500 cursor-pointer overflow-hidden">
                         {loading ? (
                             <div className="animate-pulse bg-gray-600 w-full h-full rounded-full"></div>
@@ -118,7 +114,6 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
                         )}
                     </div>
                     
-                    {/* Información del usuario */}
                     <div>
                         <h3 className="font-bold text-white">{astronaut.username || 'Astronauta Cósmico'}</h3>
                         <div className="flex items-center text-sm text-gray-400">
@@ -135,7 +130,6 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
                     </div>
                 </div>
                 
-                {/* Botones de acción */}
                 <div className="flex space-x-2">
                     {!isProfile && (
                         <button

@@ -1,13 +1,13 @@
 1- Ventana de chat 🟢
 2- Centro de notificaciones 🟢
 3- Ventana de modificación del usuario 🟢
-4- Validaciones 🔴
+4- Validaciones 🟢
 5- Modal comentarios 🟢
 6- Boton para eliminar publicaciones 🟢
 7- boton para eliminar notificacion 🟢
 8- boton para eliminar todas las notifiaciones 🟢
-9- Agregar sección de explorar 🔴
-10- agregar hora y boton de eliminar mensaje y de editar 🟢
+9- Agregar sección de explorar 🟢
+10- agregar hora y boton de eliminar mensaje y de editar 🔴
 12- agregar boton de modificar post 🟢
 13- agregar modal para confirmar eliminar post 🟢
 14- agregar modal para modificar el post 🟢

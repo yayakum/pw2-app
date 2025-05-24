@@ -7,24 +7,19 @@ import AstronautsList from '../../components/AstronautsList/AstronautsList';
 const backendURL = import.meta.env.VITE_BACKEND_URL;
 
 const Explore = () => {
-  // Estado para manejar la pestaña activa
   const [activeTab, setActiveTab] = useState('publicaciones');
-  
-  // Estado para los filtros
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [recentOnly, setRecentOnly] = useState(false);
-  
-  // Estado para publicaciones y astronautas
+
   const [posts, setPosts] = useState([]);
   const [astronauts, setAstronauts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Estado para categorías
   const [categories, setCategories] = useState([]);
   
-  // Función para obtener categorías
   const fetchCategories = async () => {
     try {
       const response = await fetch(`${backendURL}/getAllCategories`);
@@ -37,11 +32,9 @@ const Explore = () => {
       setCategories(data);
     } catch (err) {
       console.error('Error fetching categories:', err);
-      // No establecemos error global para no afectar la interfaz principal
     }
   };
   
-  // Función para obtener publicaciones
   const fetchPosts = async () => {
     setLoading(true);
     setError(null);
@@ -54,12 +47,10 @@ const Explore = () => {
       
       let url = `${backendURL}/getExplorePosts`;
       
-      // Añadir parámetros de filtro si es necesario
       const params = new URLSearchParams();
       if (searchQuery.trim()) params.append('search', searchQuery.trim());
       if (selectedCategory) params.append('category', selectedCategory);
       if (recentOnly) {
-        // Calcular timestamp de 5 horas atrás
         const fiveHoursAgo = new Date();
         fiveHoursAgo.setHours(fiveHoursAgo.getHours() - 5);
         params.append('since', fiveHoursAgo.toISOString());
@@ -85,7 +76,6 @@ const Explore = () => {
       const responseData = await response.json();
       
       if (responseData.data && Array.isArray(responseData.data)) {
-        // Formateamos los datos para el componente PostsList
         const formattedPosts = responseData.data.map(post => {
           return {
             id: post.id,
@@ -122,7 +112,7 @@ const Explore = () => {
     }
   };
   
-  // Función para obtener astronautas
+  // Función para obtener usuarios
 const fetchAstronauts = async () => {
   setLoading(true);
   setError(null);
@@ -133,7 +123,6 @@ const fetchAstronauts = async () => {
       throw new Error('No hay token de autenticación');
     }
     
-    // Construir URL con parámetro de búsqueda si existe
     let url = `${backendURL}/getAllUsersExceptCurrent`;
     
     if (searchQuery.trim()) {
@@ -153,7 +142,6 @@ const fetchAstronauts = async () => {
       throw new Error(errorData.error || 'Error al obtener astronautas');
     }
     
-    // La respuesta ya viene formateada del backend, no está dentro de un campo data
     const astronautsData = await response.json();
     
     if (Array.isArray(astronautsData)) {
@@ -169,7 +157,6 @@ const fetchAstronauts = async () => {
   }
 };
   
-  // Función para formatear la fecha
   const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -189,12 +176,10 @@ const fetchAstronauts = async () => {
     }
   };
   
-  // Cargar categorías al montar el componente
   useEffect(() => {
     fetchCategories();
   }, []);
   
-  // Efecto para aplicar filtros con debounce para la búsqueda
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       if (activeTab === 'publicaciones') {
@@ -202,41 +187,34 @@ const fetchAstronauts = async () => {
       } else {
         fetchAstronauts();
       }
-    }, 500); // 500ms debounce
+    }, 500);
     
     return () => clearTimeout(delayDebounce);
   }, [activeTab, searchQuery, selectedCategory, recentOnly]);
   
-  // Manejar cambio de pestaña
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    // Reset filters when changing tabs
     setSearchQuery('');
     setSelectedCategory('');
     setRecentOnly(false);
   };
   
-  // Manejar cambio de búsqueda
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
   
-  // Manejar cambio de categoría
   const handleCategoryChange = (e) => {
     setSelectedCategory(e.target.value);
   };
   
-  // Alternar filtro de recientes
   const toggleRecentFilter = () => {
     setRecentOnly(!recentOnly);
   };
   
-  // Manejar refresco de datos (por ejemplo, después de eliminación)
   const handlePostDelete = (postId) => {
     if (postId === "refresh") {
       fetchPosts();
     } else {
-      // Eliminar post del estado local
       setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
     }
   };
@@ -249,11 +227,9 @@ const fetchAstronauts = async () => {
         <LeftSidebar />
         
         <section className="w-full md:w-3/4 md:px-4">
-          {/* Contenedor de Explorar con posición fija */}
           <div className="sticky top-0 z-10 p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md mb-6">
             <h2 className="text-2xl font-bold mb-6 text-purple-300">Explorar</h2>
             
-            {/* Tabs de navegación */}
             <div className="flex border-b border-gray-700 mb-6">
               <button
                 className={`px-4 py-2 font-medium ${
@@ -283,11 +259,9 @@ const fetchAstronauts = async () => {
               </button>
             </div>
             
-            {/* Filtros para publicaciones */}
             {activeTab === 'publicaciones' && (
               <div className="mb-6 space-y-4 ">
                 <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
-                  {/* Buscador */}
                   <div className="flex-1 relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <Search size={18} className="text-gray-400" />
@@ -301,7 +275,6 @@ const fetchAstronauts = async () => {
                     />
                   </div>
                   
-                  {/* Selector de categoría */}
                   <div className="relative w-full md:w-64">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <Filter size={18} className="text-gray-400" />
@@ -320,7 +293,6 @@ const fetchAstronauts = async () => {
                     </select>
                   </div>
                   
-                  {/* Botón de recientes */}
                   <button
                     className={`flex items-center px-4 py-2 rounded-md border ${
                       recentOnly
@@ -336,7 +308,6 @@ const fetchAstronauts = async () => {
               </div>
             )}
             
-            {/* Buscador para astronautas */}
             {activeTab === 'astronautas' && (
               <div className="mb-6">
                 <div className="flex-1 relative">
@@ -355,10 +326,8 @@ const fetchAstronauts = async () => {
             )}
           </div>
           
-          {/* Contenido según la pestaña activa */}
           {activeTab === 'publicaciones' ? (
             <div className="mb-6">
-              {/* Estado de carga y error */}
               {loading && (
                 <div className="flex justify-center items-center p-8">
                   <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
@@ -377,7 +346,6 @@ const fetchAstronauts = async () => {
                 </div>
               )}
               
-              {/* Sin resultados */}
               {!loading && !error && posts.length === 0 && (
                 <div className="p-8 rounded-lg bg-gray-700 bg-opacity-60 text-center">
                   <h3 className="text-xl font-medium mb-4">No se encontraron publicaciones</h3>
@@ -387,13 +355,11 @@ const fetchAstronauts = async () => {
                 </div>
               )}
               
-              {/* Lista de publicaciones */}
               {!loading && !error && posts.length > 0 && (
                 <PostsList posts={posts} onPostDelete={handlePostDelete} />
               )}
             </div>
           ) : (
-            // Usar el nuevo componente AstronautsList
             <AstronautsList 
               astronauts={astronauts}
               loading={loading}

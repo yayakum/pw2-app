@@ -4,19 +4,16 @@ import { PlayCircle, X } from 'lucide-react';
 const MediaGallery = ({ mediaPosts }) => {
   const [selectedMedia, setSelectedMedia] = useState(null);
 
-  // Abre el modal con el contenido seleccionado
   const openMediaPreview = (post) => {
     setSelectedMedia(post);
   };
 
-  // Cierra el modal
   const closeMediaPreview = () => {
     setSelectedMedia(null);
   };
 
   return (
     <div>
-      {/* Galería de miniaturas */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
         {mediaPosts.map(post => (
           <div 
@@ -49,7 +46,6 @@ const MediaGallery = ({ mediaPosts }) => {
         ))}
       </div>
 
-      {/* Modal de vista previa */}
       {selectedMedia && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-black/50">
           <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col">
@@ -89,7 +85,6 @@ const MediaGallery = ({ mediaPosts }) => {
         </div>
       )}
 
-      {/* Mensaje cuando no hay contenido */}
       {mediaPosts.length === 0 && (
         <div className="p-8 text-center">
           <p className="text-gray-400">No hay contenido multimedia para mostrar</p>

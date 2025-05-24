@@ -20,7 +20,6 @@ import io from 'socket.io-client';
 
 const backendURL = import.meta.env.VITE_BACKEND_URL;
 
-// Mapa de iconos para diferentes tipos de notificaciones
 const notificationIcons = {
   message: MessageCircle,
   comment: MessageCircle,
@@ -31,7 +30,6 @@ const notificationIcons = {
   default: AlertCircle
 };
 
-// Mapa de colores para diferentes tipos de notificaciones
 const notificationColors = {
   message: "text-blue-400",
   comment: "text-green-400",
@@ -42,7 +40,6 @@ const notificationColors = {
   default: "text-gray-400"
 };
 
-// Función para formatear el tiempo de notificación
 const formatNotificationTime = (dateString) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -62,7 +59,6 @@ const formatNotificationTime = (dateString) => {
   }
 };
 
-// Función para generar texto de notificación basado en el tipo
 const getNotificationText = (notification) => {
   const username = notification.fromUser?.username || "Alguien";
   
@@ -85,7 +81,6 @@ const getNotificationText = (notification) => {
 // Función para reproducir sonido de notificación
 const playNotificationSound = () => {
   try {
-    // Crear un sonido simple usando Web Audio API
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
@@ -121,7 +116,7 @@ const NotificationCenter = () => {
   const [newNotifications, setNewNotifications] = useState(new Set()); // Para trackear notificaciones nuevas
   const bellRef = useRef(null);
 
-  // Configurar Socket.IO para notificaciones en tiempo real
+  // Configurar Socket.IO
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -134,34 +129,27 @@ const NotificationCenter = () => {
       console.log('Conectado para notificaciones en tiempo real');
     });
 
-    // Escuchar nuevas notificaciones con animaciones mejoradas
     newSocket.on('new_notification', (notificationData) => {
       console.log('Nueva notificación recibida:', notificationData);
       
-      // Animar el icono de la campana
       if (bellRef.current) {
         bellRef.current.style.animation = 'none';
-        bellRef.current.offsetHeight; // Trigger reflow
+        bellRef.current.offsetHeight;
         bellRef.current.style.animation = 'bellShake 0.5s ease-in-out';
       }
       
-      // Reproducir sonido si está habilitado
       if (soundEnabled) {
         playNotificationSound();
       }
       
-      // Actualizar el contador de notificaciones no leídas
       setUnreadCount(prev => prev + 1);
       
-      // Si el panel está abierto, refrescar las notificaciones
       if (isOpen) {
         fetchNotifications();
       }
       
-      // Marcar como nueva notificación para animación especial
       if (notificationData.id) {
         setNewNotifications(prev => new Set(prev).add(notificationData.id));
-        // Remover la marca después de 3 segundos
         setTimeout(() => {
           setNewNotifications(prev => {
             const newSet = new Set(prev);
@@ -187,7 +175,6 @@ const NotificationCenter = () => {
     };
   }, [isOpen, soundEnabled]);
 
-  // CSS para la animación de la campana
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
@@ -204,30 +191,26 @@ const NotificationCenter = () => {
     };
   }, []);
 
-  // Cargar el conteo de notificaciones no leídas al iniciar
   useEffect(() => {
     fetchUnreadCount();
     
-    // Actualizar el conteo cada minuto
     const interval = setInterval(fetchUnreadCount, 60000);
     
     return () => clearInterval(interval);
   }, []);
 
-  // Cargar notificaciones cuando se abre el panel
   useEffect(() => {
     if (isOpen) {
       fetchNotifications();
     }
   }, [isOpen]);
 
-  // Función para cargar la imagen de perfil de un usuario específico
+  // Función para cargar la imagen de perfil
   const fetchUserProfileImage = async (userId) => {
     try {
       const token = localStorage.getItem('token');
       if (!token) return null;
 
-      // Marcar como cargando
       setLoadingImages(prev => ({ ...prev, [userId]: true }));
 
       const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id;
@@ -261,12 +244,10 @@ const NotificationCenter = () => {
     return null;
   };
 
-  // Función para manejar errores de imagen
   const handleImageError = (userId) => {
     setProfileImages(prev => ({ ...prev, [userId]: null }));
   };
 
-  // Función para obtener el conteo de notificaciones no leídas
   const fetchUnreadCount = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -323,7 +304,6 @@ const NotificationCenter = () => {
       const notificationsData = data.data || [];
       setNotifications(notificationsData);
       
-      // Cargar imágenes de perfil para cada usuario de las notificaciones
       const uniqueUserIds = [...new Set(
         notificationsData
           .map(notification => notification.fromUserId || notification.fromUser?.id)
@@ -353,7 +333,6 @@ const NotificationCenter = () => {
         throw new Error('No hay token de autenticación');
       }
       
-      // Optimistic UI update
       setNotifications(notifications.filter((notification) => notification.id !== id));
       setOpenMenuId(null);
       
@@ -366,12 +345,10 @@ const NotificationCenter = () => {
       });
       
       if (!response.ok) {
-        // Revertir el cambio si hay error
         fetchNotifications();
         throw new Error('Error al eliminar la notificación');
       }
       
-      // Actualizar el conteo
       fetchUnreadCount();
       
     } catch (err) {
@@ -389,7 +366,6 @@ const NotificationCenter = () => {
         throw new Error('No hay token de autenticación');
       }
       
-      // Optimistic UI update
       setNotifications([]);
       
       const response = await fetch(`${backendURL}/deleteAllNoti`, {
@@ -401,12 +377,10 @@ const NotificationCenter = () => {
       });
       
       if (!response.ok) {
-        // Revertir el cambio si hay error
         fetchNotifications();
         throw new Error('Error al eliminar todas las notificaciones');
       }
       
-      // Actualizar el conteo
       setUnreadCount(0);
       
     } catch (err) {
@@ -424,7 +398,6 @@ const NotificationCenter = () => {
         throw new Error('No hay token de autenticación');
       }
       
-      // Optimistic UI update
       setNotifications(
         notifications.map((notification) =>
           notification.id === id ? { ...notification, isRead: true } : notification
@@ -441,12 +414,10 @@ const NotificationCenter = () => {
       });
       
       if (!response.ok) {
-        // Revertir el cambio si hay error
         fetchNotifications();
         throw new Error('Error al marcar como leída');
       }
       
-      // Actualizar el conteo
       fetchUnreadCount();
       
     } catch (err) {
@@ -464,7 +435,6 @@ const NotificationCenter = () => {
         throw new Error('No hay token de autenticación');
       }
       
-      // Optimistic UI update
       setNotifications(
         notifications.map((notification) => ({ ...notification, isRead: true }))
       );
@@ -478,12 +448,10 @@ const NotificationCenter = () => {
       });
       
       if (!response.ok) {
-        // Revertir el cambio si hay error
         fetchNotifications();
         throw new Error('Error al marcar todas como leídas');
       }
       
-      // Actualizar el conteo
       setUnreadCount(0);
       
     } catch (err) {
@@ -497,20 +465,16 @@ const NotificationCenter = () => {
     setOpenMenuId(openMenuId === id ? null : id);
   };
 
-  // Manejar clic en notificación para navegar según el tipo
   const handleNotificationClick = (notification) => {
-    // Marcar como leída primero si no está leída
     if (!notification.isRead) {
       markAsRead(notification.id);
     }
     
-    // Cerrar el menú de notificaciones
     setIsOpen(false);
     
     // Navegar según el tipo de notificación
     switch (notification.type) {
       case 'message':
-        // Navegar al chat con el usuario que envió el mensaje
         if (notification.fromUserId) {
           navigate('/chats', { 
             state: { 
@@ -523,13 +487,11 @@ const NotificationCenter = () => {
       case 'like':
       case 'comment':
       case 'new_post':
-        // Navegar a la publicación si existe
         if (notification.postId) {
           navigate(`/post/${notification.postId}`);
         }
         break;
       case 'follow':
-        // Navegar al perfil del usuario
         if (notification.fromUserId) {
           navigate(`/profile/${notification.fromUserId}`);
         }
@@ -674,7 +636,6 @@ const NotificationCenter = () => {
                                   )}
                                 </div>
                               )}
-                              {/* Indicador de nueva notificación */}
                               {isNew && (
                                 <motion.div
                                   initial={{ scale: 0 }}

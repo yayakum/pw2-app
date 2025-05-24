@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { User, Lock, Mail, Calendar, UploadIcon, RocketIcon } from 'lucide-react';
 import { useNavigate, Link } from "react-router-dom";
 const backendURL = import.meta.env.VITE_BACKEND_URL;
+
 const Register = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -34,72 +35,90 @@ const Register = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError("");
-  setSuccessMessage("");
-  
-  // Validaciones básicas
-  if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
-    setError("Todos los campos son obligatorios");
-    return;
-  }
-  
-  if (formData.password !== formData.confirmPassword) {
-    setError("Las contraseñas no coinciden");
-    return;
-  }
-  
-  setIsLoading(true);
-  
-  try {
-    // Crear FormData para enviar archivos
-    const formDataToSend = new FormData();
-    formDataToSend.append('username', formData.username);
-    formDataToSend.append('email', formData.email);
-    formDataToSend.append('password', formData.password);
+    e.preventDefault();
+    setError("");
+    setSuccessMessage("");
     
-    // Si hay una imagen seleccionada, añadirla al FormData
-    const fileInput = document.querySelector('input[type="file"]');
-    if (fileInput.files[0]) {
-      formDataToSend.append('profilePic', fileInput.files[0]);
+    // Validaciones
+    if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
+      setError("Todos los campos son obligatorios");
+      return;
     }
     
-    const response = await fetch(`${backendURL}/register`, {
-      method: 'POST',
-      // No incluir el Content-Type header cuando se envía FormData
-      body: formDataToSend,
-    });
+    if (formData.username.length < 3) {
+      setError("El nombre de usuario debe tener al menos 3 caracteres");
+      return;
+    }
+
+    const allowedDomains = ['@gmail.com', '@outlook.com', '@hotmail.com'];
+    const emailDomain = formData.email.toLowerCase();
+    const isValidDomain = allowedDomains.some(domain => emailDomain.endsWith(domain));
     
-    const data = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(data.error || "Error al registrar usuario");
+    if (!isValidDomain) {
+      setError("Solo se permiten correos de Gmail, Outlook o Hotmail");
+      return;
+    }
+
+    if (formData.password.length <= 5 ) {
+      setError("La contraseña debe tener más de 5 caracteres");
+      return;
     }
     
-    setSuccessMessage(data.message || "¡Registro exitoso! Redirigiendo al inicio de sesión...");
-    setFormData({
-      username: "",
-      email: "",
-      password: "",
-      confirmPassword: ""
-    });
-    setPreviewImage(null);
+    if (!/\d/.test(formData.password)) {
+      setError("La contraseña debe contener al menos un número");
+      return;
+    }
     
-    // Redirigir al login después de un breve retraso
-    setTimeout(() => {
-      navigate('/');
-    }, 2000);
-  } catch (err) {
-    setError(err.message || "Error al procesar la solicitud");
-    console.error(err);
-  } finally {
-    setIsLoading(false);
-  }
-};
+    if (formData.password !== formData.confirmPassword) {
+      setError("Las contraseñas no coinciden");
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('username', formData.username);
+      formDataToSend.append('email', formData.email);
+      formDataToSend.append('password', formData.password);
+      
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput.files[0]) {
+        formDataToSend.append('profilePic', fileInput.files[0]);
+      }
+      
+      const response = await fetch(`${backendURL}/register`, {
+        method: 'POST',
+        body: formDataToSend,
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Error al registrar usuario");
+      }
+      
+      setSuccessMessage(data.message || "¡Registro exitoso! Redirigiendo al inicio de sesión...");
+      setFormData({
+        username: "",
+        email: "",
+        password: "",
+        confirmPassword: ""
+      });
+      setPreviewImage(null);
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
+    } catch (err) {
+      setError(err.message || "Error al procesar la solicitud");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-black pt-10 pb-10">
-      {/* Estrellas animadas (efecto simple) */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="stars-1 fixed w-2 h-2 rounded-full bg-white top-10 left-20 animate-pulse"></div>
         <div className="stars-2 fixed w-1 h-1 rounded-full bg-white top-20 left-80 animate-pulse"></div>
@@ -107,16 +126,14 @@ const Register = () => {
         <div className="stars-4 fixed w-2 h-2 rounded-full bg-white bottom-10 right-40 animate-pulse"></div>
         <div className="stars-5 fixed w-1 h-1 rounded-full bg-white bottom-20 left-40 animate-pulse"></div>
       </div>
-      
-      {/* Formulario de registro */}
+
       <div className="w-full max-w-md p-8 rounded-xl bg-gray-900 bg-opacity-70 backdrop-blur-sm shadow-2xl border border-purple-500">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500">
             Registro Intergaláctico
           </h2>
           <p className="text-blue-300 mt-2">Crea tu identidad en el cosmos digital</p>
-          
-          {/* Mensaje de éxito o error */}
+
           {error && (
             <div className="mt-4 p-2 bg-red-500 bg-opacity-70 text-white rounded-md">
               {error}
@@ -127,8 +144,7 @@ const Register = () => {
               {successMessage}
             </div>
           )}
-          
-          {/* Selector de imagen de perfil con forma redonda */}
+
           <div className="mt-6 flex justify-center">
             <div className="relative group">
               <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-purple-500 flex items-center justify-center bg-gray-800">

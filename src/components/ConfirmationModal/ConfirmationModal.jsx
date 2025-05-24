@@ -4,7 +4,6 @@ import { X, AlertTriangle } from 'lucide-react';
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, postContent }) => {
   if (!isOpen) return null;
 
-  // Prevenir que los clics dentro del modal cierren el modal
   const handleModalClick = (e) => {
     e.stopPropagation();
   };
