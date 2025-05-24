@@ -2,12 +2,81 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Send, Search, Edit, Trash2, Check, Users, MessageSquare } from 'lucide-react';
 import Header from '../../components/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar/LeftSidebar';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import io from 'socket.io-client';
 const backendURL = import.meta.env.VITE_BACKEND_URL;
 
+// Componente para mostrar avatar de usuario con fetch de imagen
+const UserAvatar = ({ userId, username, size = 'w-12 h-12', showOnlineStatus = true, onlineUsers = {} }) => {
+  const [profileImage, setProfileImage] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+
+        const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id;
+        const isCurrentUser = userId === parseInt(currentUserId);
+        
+        const url = isCurrentUser 
+          ? `${backendURL}/profile`
+          : `${backendURL}/profile/${userId}`;
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          setProfileImage(userData.profilePic);
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [userId]);
+
+  return (
+    <div className="relative">
+      <div className={`${size} rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500 overflow-hidden`}>
+        {loading ? (
+          <div className="animate-pulse bg-gray-600 w-full h-full rounded-full"></div>
+        ) : profileImage ? (
+          <img 
+            src={`data:image/jpeg;base64,${profileImage}`}
+            alt={username}
+            className="w-full h-full object-cover rounded-full"
+            onError={() => setProfileImage(null)}
+          />
+        ) : (
+          <span className="text-white font-bold">{username?.charAt(0).toUpperCase() || 'U'}</span>
+        )}
+      </div>
+      {showOnlineStatus && (
+        <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ${
+          onlineUsers[userId] ? 'bg-green-500' : 'bg-gray-500'
+        } border-2 border-gray-800`}></span>
+      )}
+    </div>
+  );
+};
+
 const Chats = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedUser, setSelectedUser] = useState(null);
   const [messageInput, setMessageInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,13 +93,31 @@ const Chats = () => {
   const messagesEndRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [activeTab, setActiveTab] = useState('conversations'); // 'conversations' o 'contacts'
+  const [activeTab, setActiveTab] = useState('conversations');
+  
+  // Estado para controlar cuándo hacer auto-scroll
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   
   // Obtener datos del usuario del localStorage
   const userJson = localStorage.getItem('user');
   const user = userJson ? JSON.parse(userJson) : null;
   const userId = user ? user.id : null;
   const token = localStorage.getItem('token');
+
+  // Manejar navegación desde notificaciones
+  useEffect(() => {
+    if (location.state?.selectedUserId && location.state?.selectedUsername) {
+      const userFromNotification = {
+        id: location.state.selectedUserId,
+        name: location.state.selectedUsername
+      };
+      handleUserSelect(userFromNotification);
+      
+      // Limpiar el state de location para evitar problemas en futuras navegaciones
+      navigate('/chats', { replace: true });
+    }
+  }, [location.state]);
 
   // Redirigir al login si no hay usuario autenticado
   useEffect(() => {
@@ -56,18 +143,18 @@ const Chats = () => {
     });
 
     newSocket.on('receive_message', (message) => {
-      // Si el mensaje es de/para el usuario seleccionado actualmente
       if (selectedUser && 
          (message.senderId === selectedUser.id || message.receiverId === selectedUser.id)) {
         setMessages((prevMessages) => [...prevMessages, message]);
         
-        // Si el mensaje es recibido, marcarlo como leído
+        // Hacer scroll automático solo cuando se recibe un mensaje nuevo
+        setShouldAutoScroll(true);
+        
         if (message.senderId === selectedUser.id) {
           newSocket.emit('mark_messages_read', { senderId: selectedUser.id });
         }
       }
       
-      // Actualizar la lista de conversaciones
       fetchConversations();
     });
 
@@ -91,7 +178,6 @@ const Chats = () => {
 
     newSocket.on('error', (error) => {
       console.error('Error del servidor:', error.message);
-      // Aquí podrías mostrar una notificación al usuario
     });
 
     setSocket(newSocket);
@@ -169,9 +255,6 @@ const Chats = () => {
         const formattedFollowers = data.data.map(item => ({
           id: item.seguidor.id,
           name: item.seguidor.username,
-          avatar: item.seguidor.profilePic 
-            ? `data:image/jpeg;base64,${item.seguidor.profilePic}` 
-            : '/api/placeholder/40/40',
           bio: item.seguidor.bio || 'Sin biografía',
           isFollowing: item.seguidor.isFollowing,
         }));
@@ -219,10 +302,6 @@ const Chats = () => {
         const formattedFollowing = data.data.map(item => ({
           id: item.seguido.id,
           name: item.seguido.username,
-          avatar: item.seguido.profilePic 
-            ? `data:image/jpeg;base64,${item.seguido.profilePic}` 
-            : '/api/placeholder/40/40',
-          bio: item.seguido.bio || 'Sin biografía',
           isFollowing: true,
         }));
         
@@ -248,12 +327,10 @@ const Chats = () => {
   // Combinar seguidores y seguidos para la lista de contactos
   useEffect(() => {
     const combined = [...followers, ...following];
-    // Eliminar duplicados (un usuario puede ser seguidor y seguido)
     const uniqueUsers = combined.filter((user, index, self) =>
       index === self.findIndex(u => u.id === user.id)
     );
     
-    // Filtrar para excluir usuarios que ya están en las conversaciones
     const contactsWithoutConversations = uniqueUsers.filter(contact => 
       !conversations.some(conv => conv.id === contact.id)
     );
@@ -265,12 +342,7 @@ const Chats = () => {
   useEffect(() => {
     if (searchQuery.trim() === '') return;
     
-    if (activeTab === 'conversations') {
-      const filtered = conversations.filter(conv => 
-        conv.username.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      // No actualizamos aquí porque usaremos el filtro directamente en el renderizado
-    } else {
+    if (activeTab === 'contacts') {
       const query = searchQuery.toLowerCase();
       const filtered = filteredItems.filter(item => 
         item.name.toLowerCase().includes(query) || 
@@ -309,17 +381,17 @@ const Chats = () => {
       const data = await response.json();
       
       if (page === 1) {
-        // Primer carga: reemplazar mensajes
-        setMessages(data.data.reverse()); // Revertimos para mostrar los más antiguos primero
+        // Es la primera carga, no hacer auto-scroll
+        setMessages(data.data.reverse());
+        setIsInitialLoad(true);
+        setShouldAutoScroll(false);
       } else {
-        // Carga más mensajes: añadir al principio
         setMessages(prev => [...data.data.reverse(), ...prev]);
       }
       
       setTotalPages(data.pagination.pages);
       setCurrentPage(data.pagination.page);
       
-      // Marcar mensajes como leídos
       if (socket && otherUserId) {
         socket.emit('mark_messages_read', { senderId: otherUserId });
       }
@@ -334,6 +406,8 @@ const Chats = () => {
   const handleUserSelect = (user) => {
     setSelectedUser(user);
     setCurrentPage(1);
+    setIsInitialLoad(true);
+    setShouldAutoScroll(false);
     fetchMessages(user.id, 1);
   };
 
@@ -342,6 +416,8 @@ const Chats = () => {
     setSelectedUser(null);
     setEditingMessage(null);
     setMessages([]);
+    setIsInitialLoad(true);
+    setShouldAutoScroll(false);
   };
 
   // Enviar un mensaje
@@ -351,6 +427,10 @@ const Chats = () => {
         receiverId: selectedUser.id,
         content: messageInput.trim()
       });
+      
+      // Hacer scroll automático cuando el usuario envía un mensaje
+      setShouldAutoScroll(true);
+      setIsInitialLoad(false);
       
       setMessageInput('');
     }
@@ -406,12 +486,20 @@ const Chats = () => {
     }
   };
 
-  // Auto-scroll al enviar mensajes
+  // Auto-scroll: inmediato en carga inicial, suave para mensajes nuevos
   useEffect(() => {
-    if (messages.length > 0 && currentPage === 1) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length > 0) {
+      if (isInitialLoad && currentPage === 1) {
+        // Carga inicial: scroll inmediato sin animación al final
+        messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+        setIsInitialLoad(false);
+      } else if (shouldAutoScroll && !isInitialLoad) {
+        // Mensajes nuevos: scroll suave
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        setShouldAutoScroll(false);
+      }
     }
-  }, [messages, currentPage]);
+  }, [messages, shouldAutoScroll, isInitialLoad, currentPage]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-gray-200 bg-fixed">
@@ -470,7 +558,6 @@ const Chats = () => {
 
           <div className="flex-grow overflow-hidden flex flex-col h-[500px] max-h-[500px] -mb-3">
             {!selectedUser ? (
-              // Lista de Conversaciones o Contactos
               <div className="p-4 h-full flex flex-col">
                 <div className="relative mb-4">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -494,9 +581,7 @@ const Chats = () => {
                       <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500"></div>
                     </div>
                   ) : activeTab === 'conversations' ? (
-                    // Pestaña de conversaciones
                     conversations.length > 0 ? (
-                      // Filtrar conversaciones según la búsqueda
                       conversations
                         .filter(conv => 
                           searchQuery === '' || 
@@ -508,22 +593,16 @@ const Chats = () => {
                             className="flex items-center p-3 hover:bg-gray-700 rounded-lg cursor-pointer"
                             onClick={() => handleUserSelect({
                               id: conv.id,
-                              name: conv.username,
-                              avatar: conv.profilePic ? `data:image/jpeg;base64,${conv.profilePic}` : '/api/placeholder/40/40'
+                              name: conv.username
                             })}
                           >
-                            <div className="relative">
-                              <img 
-                                src={conv.profilePic ? `data:image/jpeg;base64,${conv.profilePic}` : '/api/placeholder/40/40'} 
-                                alt={conv.username} 
-                                className="w-12 h-12 rounded-full mr-4" 
-                              />
-                              <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ${
-                                onlineUsers[conv.id] ? 'bg-green-500' : 'bg-gray-500'
-                              } border-2 border-gray-800`}></span>
-                            </div>
+                            <UserAvatar 
+                              userId={conv.id} 
+                              username={conv.username}
+                              onlineUsers={onlineUsers}
+                            />
                             
-                            <div className="flex-grow">
+                            <div className="flex-grow ml-4">
                               <div className="flex justify-between">
                                 <h4 className="font-semibold">{conv.username}</h4>
                                 <span className="text-xs text-gray-400">
@@ -555,7 +634,6 @@ const Chats = () => {
                       </div>
                     )
                   ) : (
-                    // Pestaña de contactos (seguidores y seguidos)
                     filteredItems.length > 0 ? (
                       filteredItems
                         .filter(item => 
@@ -569,18 +647,13 @@ const Chats = () => {
                             className="flex items-center p-3 hover:bg-gray-700 rounded-lg cursor-pointer"
                             onClick={() => handleUserSelect(item)}
                           >
-                            <div className="relative">
-                              <img 
-                                src={item.avatar} 
-                                alt={item.name} 
-                                className="w-12 h-12 rounded-full mr-4" 
-                              />
-                              <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ${
-                                onlineUsers[item.id] ? 'bg-green-500' : 'bg-gray-500'
-                              } border-2 border-gray-800`}></span>
-                            </div>
+                            <UserAvatar 
+                              userId={item.id} 
+                              username={item.name}
+                              onlineUsers={onlineUsers}
+                            />
                             
-                            <div className="flex-grow">
+                            <div className="flex-grow ml-4">
                               <h4 className="font-semibold">{item.name}</h4>
                               <p className="text-sm text-gray-400">
                                 {item.bio || 'Sin biografía'}
@@ -597,7 +670,6 @@ const Chats = () => {
                 </div>
               </div>
             ) : (
-              // Chat Conversation
               <div className="flex flex-col h-full">
                 {currentPage < totalPages && (
                   <div className="text-center p-2">
@@ -673,26 +745,6 @@ const Chats = () => {
                             </div>
                           )}
                         </div>
-                        
-                        {/* Botones de editar/eliminar para mensajes propios */}
-                        {/* {message.senderId === userId && !editingMessage && (
-                          <div className="flex space-x-2 mt-1">
-                            <button 
-                              onClick={() => handleEditMessage(message)}
-                              className="bg-gray-800 p-1 rounded hover:bg-gray-700 transition flex items-center space-x-1"
-                            >
-                              <Edit size={14} className="text-purple-400" />
-                              <span className="text-xs text-purple-400">Editar</span>
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteMessage(message.id)}
-                              className="bg-gray-800 p-1 rounded hover:bg-gray-700 transition flex items-center space-x-1"
-                            >
-                              <Trash2 size={14} className="text-red-400" />
-                              <span className="text-xs text-red-400">Eliminar</span>
-                            </button>
-                          </div>
-                        )} */}
                       </div>
                     ))
                   ) : (
@@ -705,7 +757,6 @@ const Chats = () => {
                   <div ref={messagesEndRef} />
                 </div>
                 
-                {/* Message Input */}
                 <div className="p-4 border-t border-gray-700">
                   <div className="flex items-center space-x-2">
                     <input 

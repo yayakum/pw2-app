@@ -1,13 +1,217 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../components/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar/LeftSidebar';
-import { Edit, Users, MessageCircle, Info, Bookmark, Image, UserPlus } from 'lucide-react';
+import { Edit, Users, MessageCircle, Info, Bookmark, Image, UserPlus, User } from 'lucide-react';
 import CreatePost from '../../components/CreatePost/CreatePost';
 import PostsList from '../../components/PostList/PostList';
 import UserEdit from '../../components/UserEdit/UserEdit';
 import MediaGallery from '../../components/MediaGallery/MediaGallery';
-import AstronautsList from '../../components/AstronautsList/AstronautsList';
+import { useNavigate } from 'react-router-dom';
 const backendURL = import.meta.env.VITE_BACKEND_URL;
+
+// Componente para mostrar avatar de usuario con fetch de imagen
+const UserAvatar = ({ userId, username, size = 'w-10 h-10', className = '' }) => {
+  const [profileImage, setProfileImage] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+
+        const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id;
+        const isCurrentUser = userId === parseInt(currentUserId);
+        
+        const url = isCurrentUser 
+          ? `${backendURL}/profile`
+          : `${backendURL}/profile/${userId}`;
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          setProfileImage(userData.profilePic);
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [userId]);
+
+  return (
+    <div className={`${size} rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500 overflow-hidden ${className}`}>
+      {loading ? (
+        <div className="animate-pulse bg-gray-600 w-full h-full rounded-full"></div>
+      ) : profileImage ? (
+        <img 
+          src={`data:image/jpeg;base64,${profileImage}`}
+          alt={username}
+          className="w-full h-full object-cover rounded-full"
+          onError={() => setProfileImage(null)}
+        />
+      ) : (
+        <span className="text-white font-bold">{username?.charAt(0).toUpperCase() || 'U'}</span>
+      )}
+    </div>
+  );
+};
+
+// Componente para mostrar una tarjeta de astronauta en la lista
+const AstronautCard = ({ astronaut, isProfile = false }) => {
+  const navigate = useNavigate();
+  const [isFollowing, setIsFollowing] = useState(astronaut.isFollowing || false);
+
+  const getUserName = () => {
+    return astronaut?.username || "Usuario";
+  };
+
+  // Función para manejar el seguimiento
+  const handleFollow = async (e) => {
+    e.stopPropagation();
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No hay token de autenticación');
+      }
+      
+      const url = isFollowing 
+        ? `${backendURL}/unfollowUser/${astronaut.id}`
+        : `${backendURL}/followUser/${astronaut.id}`;
+        
+      const method = isFollowing ? 'DELETE' : 'POST';
+      
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al seguir/dejar de seguir al usuario');
+      }
+      
+      setIsFollowing(!isFollowing);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+  
+  // Navegar al perfil del astronauta
+  const navigateToProfile = () => {
+    navigate(`/Profile/${astronaut.id}`);
+  };
+
+  return (
+    <div className="bg-gray-800 bg-opacity-80 rounded-lg p-4 shadow-lg mb-3 w-full">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          {/* Avatar del usuario */}
+          <UserAvatar 
+            userId={astronaut.id}
+            username={getUserName()}
+            className="cursor-pointer"
+          />
+          
+          {/* Información del usuario */}
+          <div>
+            <h3 className="font-bold text-white">{astronaut.username || 'Astronauta Cósmico'}</h3>
+            <div className="flex items-center text-sm text-gray-400">
+              <span className="mr-4">
+                Desde {astronaut.createdAt 
+                  ? new Date(astronaut.createdAt).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+                  : 'marzo de 2025'}
+              </span>
+            </div>
+
+            {astronaut.bio && (
+              <p className="text-sm text-gray-300 mt-1">{astronaut.bio}</p>
+            )}
+          </div>
+        </div>
+        
+        {/* Botones de acción */}
+        <div className="flex space-x-2">
+          {!isProfile && (
+            <button
+              onClick={handleFollow}
+              className={`px-3 py-1 rounded-full text-sm font-medium cursor-pointer ${
+                isFollowing 
+                  ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                  : 'bg-purple-600 text-white hover:bg-purple-700'
+              }`}
+            >
+              {isFollowing ? 'Dejar de seguir' : 'Seguir'}
+            </button>
+          )}
+          
+          <button
+            onClick={navigateToProfile}
+            className="px-3 py-1 rounded-full bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 flex items-center cursor-pointer" 
+          >
+            <User size={14} className="mr-1" />
+            Ver perfil
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Componente para la lista de astronautas
+const AstronautsList = ({ astronauts, loading, error, onRetry }) => {
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center p-6 bg-gray-800 bg-opacity-60 rounded-lg">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-500"></div>
+        <span className="ml-3">Cargando usuarios...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-red-500 bg-opacity-60 rounded-lg text-white">
+        <p>Error: {error}</p>
+        {onRetry && (
+          <button 
+            className="mt-2 px-3 py-1 bg-white text-red-500 rounded-md text-sm"
+            onClick={onRetry}
+          >
+            Reintentar
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {astronauts.map(astronaut => (
+        <AstronautCard 
+          key={astronaut.id} 
+          astronaut={astronaut} 
+          isProfile={false}
+        />
+      ))}
+    </div>
+  );
+};
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('posts');
@@ -27,7 +231,7 @@ const Profile = () => {
   const [mediaPosts, setMediaPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [postsError, setPostsError] = useState(null);
-  const [refreshPosts, setRefreshPosts] = useState(0); // Para forzar la recarga
+  const [refreshPosts, setRefreshPosts] = useState(0);
 
   // Estados para seguidores y seguidos
   const [followers, setFollowers] = useState([]);
@@ -36,7 +240,7 @@ const Profile = () => {
   const [loadingFollowing, setLoadingFollowing] = useState(false);
   const [followersError, setFollowersError] = useState(null);
   const [followingError, setFollowingError] = useState(null);
-  const [refreshFollow, setRefreshFollow] = useState(0); // Para forzar la recarga
+  const [refreshFollow, setRefreshFollow] = useState(0);
 
   // Función para formatear la fecha y hora en formato "hace X tiempo"
   const formatTimestamp = (timestamp) => {
@@ -62,7 +266,6 @@ const Profile = () => {
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        // Primero obtenemos datos básicos del localStorage
         const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
         const token = localStorage.getItem('token');
         
@@ -70,7 +273,6 @@ const Profile = () => {
           throw new Error('No se encontró token de autenticación');
         }
         
-        // Luego hacemos una solicitud al backend para obtener datos completos
         const response = await fetch(`${backendURL}/profile`, {
           method: 'GET',
           headers: {
@@ -85,14 +287,12 @@ const Profile = () => {
         
         const profileData = await response.json();
         
-        // Formateamos la fecha de creación
         const joinDate = new Date(profileData.createdAt);
         const formattedJoinDate = joinDate.toLocaleDateString('es-ES', {
           year: 'numeric',
           month: 'long'
         });
         
-        // Actualizamos el estado con los datos completos
         setUserData({
           ...profileData,
           username: profileData.username || storedUser.username,
@@ -105,7 +305,6 @@ const Profile = () => {
       } catch (err) {
         console.error('Error fetching profile:', err);
         
-        // Si hay error, usamos los datos básicos del localStorage
         const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
         
         setUserData(prevData => ({
@@ -129,7 +328,6 @@ const Profile = () => {
       setPostsError(null);
       
       try {
-        // Obtener el ID del usuario y token
         const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
         const token = localStorage.getItem('token');
         
@@ -137,7 +335,6 @@ const Profile = () => {
           throw new Error('No se encontró información de usuario necesaria');
         }
         
-        // Obtener las publicaciones del usuario
         const response = await fetch(`${backendURL}/getUserPosts/${storedUser.id}`, {
           method: 'GET',
           headers: {
@@ -152,7 +349,6 @@ const Profile = () => {
         
         const responseData = await response.json();
         
-        // Verificar si la respuesta tiene la estructura esperada
         if (responseData.data && Array.isArray(responseData.data)) {
           const formattedPosts = responseData.data.map(post => {
             return {
@@ -178,7 +374,6 @@ const Profile = () => {
           
           setPosts(formattedPosts);
           
-          // Filtramos las publicaciones que contienen contenido multimedia
           const mediaContent = formattedPosts.filter(post => 
             post.content && post.contentType && 
             (post.contentType.startsWith('image/') || post.contentType.startsWith('video/'))
@@ -204,163 +399,151 @@ const Profile = () => {
   // Cargar seguidores
   useEffect(() => {
     const fetchFollowers = async () => {
-    
-    setLoadingFollowers(true);
-    setFollowersError(null);
-    
-    try {
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const token = localStorage.getItem('token');
+      setLoadingFollowers(true);
+      setFollowersError(null);
       
-      if (!token || !storedUser.id) {
-        throw new Error('No se encontró información de usuario necesaria');
-      }
-      
-      const response = await fetch(`${backendURL}/getUserFollowers/${storedUser.id}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const token = localStorage.getItem('token');
+        
+        if (!token || !storedUser.id) {
+          throw new Error('No se encontró información de usuario necesaria');
         }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Error al obtener seguidores');
+        
+        const response = await fetch(`${backendURL}/getUserFollowers/${storedUser.id}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Error al obtener seguidores');
+        }
+        
+        const responseData = await response.json();
+        
+        console.log('Respuesta de seguidores:', responseData);
+        
+        if (responseData.data && Array.isArray(responseData.data)) {
+          const followerCount = responseData.pagination?.total || responseData.data.length;
+          
+          setUserData(prevData => ({
+            ...prevData,
+            followers: followerCount
+          }));
+          
+          // Formatear los datos sin depender de profilePic pre-cargado
+          const formattedFollowers = responseData.data.map(follower => ({
+            id: follower.seguidor.id,
+            username: follower.seguidor.username,
+            bio: follower.seguidor.bio,
+            isFollowing: follower.seguidor.isFollowing,
+            createdAt: follower.createdAt
+          }));
+          
+          setFollowers(formattedFollowers);
+          console.log('Seguidores formateados:', formattedFollowers);
+        } else {
+          throw new Error('Formato de datos inesperado');
+        }
+      } catch (err) {
+        console.error('Error fetching followers:', err);
+        setFollowersError(err.message || 'Error al cargar seguidores');
+      } finally {
+        setLoadingFollowers(false);
       }
-      
-      const responseData = await response.json();
-      
-      // Depurar la respuesta para ver qué estamos recibiendo
-      console.log('Respuesta de seguidores:', responseData);
-      
-      if (responseData.data && Array.isArray(responseData.data)) {
-        // Actualizar el contador de seguidores para mantener la consistencia
-        const followerCount = responseData.pagination?.total || responseData.data.length;
-        
-        // Actualizar el valor de userData para reflejar el conteo real
-        setUserData(prevData => ({
-          ...prevData,
-          followers: followerCount
-        }));
-        
-        // Formatear los datos para el componente AstronautsList
-        const formattedFollowers = responseData.data.map(follower => ({
-          id: follower.seguidor.id,
-          username: follower.seguidor.username,
-          profilePic: follower.seguidor.profilePic,
-          bio: follower.seguidor.bio,
-          isFollowing: follower.seguidor.isFollowing,
-          createdAt: follower.createdAt
-        }));
-        
-        setFollowers(formattedFollowers);
-        console.log('Seguidores formateados:', formattedFollowers);
-      } else {
-        throw new Error('Formato de datos inesperado');
-      }
-    } catch (err) {
-      console.error('Error fetching followers:', err);
-      setFollowersError(err.message || 'Error al cargar seguidores');
-    } finally {
-      setLoadingFollowers(false);
+    };
+    
+    if (!loading && activeTab === 'followers') {
+      fetchFollowers();
     }
-  };
-  
-  if (!loading) {
-    fetchFollowers();
-  }
-}, [loading, activeTab, refreshFollow]);
+  }, [loading, activeTab, refreshFollow]);
 
   // Cargar seguidos
   useEffect(() => {
-  const fetchFollowing = async () => {
-    
-    setLoadingFollowing(true);
-    setFollowingError(null);
-    
-    try {
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const token = localStorage.getItem('token');
+    const fetchFollowing = async () => {
+      setLoadingFollowing(true);
+      setFollowingError(null);
       
-      if (!token || !storedUser.id) {
-        throw new Error('No se encontró información de usuario necesaria');
-      }
-      
-      const response = await fetch(`${backendURL}/getUserFollowing/${storedUser.id}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const token = localStorage.getItem('token');
+        
+        if (!token || !storedUser.id) {
+          throw new Error('No se encontró información de usuario necesaria');
         }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Error al obtener usuarios seguidos');
+        
+        const response = await fetch(`${backendURL}/getUserFollowing/${storedUser.id}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Error al obtener usuarios seguidos');
+        }
+        
+        const responseData = await response.json();
+        console.log('Respuesta de seguidos:', responseData);
+        
+        if (responseData.data && Array.isArray(responseData.data)) {
+          const followingCount = responseData.pagination?.total || responseData.data.length;
+          
+          setUserData(prevData => ({
+            ...prevData,
+            following: followingCount
+          }));
+          
+          // Formatear los datos sin depender de profilePic pre-cargado
+          const formattedFollowing = responseData.data.map(follow => ({
+            id: follow.seguido.id,
+            username: follow.seguido.username,
+            bio: follow.seguido.bio,
+            isFollowing: follow.seguido.isFollowing || true,
+            createdAt: follow.createdAt
+          }));
+          
+          setFollowing(formattedFollowing);
+          console.log('Seguidos formateados:', formattedFollowing);
+        } else {
+          throw new Error('Formato de datos inesperado');
+        }
+      } catch (err) {
+        console.error('Error fetching following:', err);
+        setFollowingError(err.message || 'Error al cargar usuarios seguidos');
+      } finally {
+        setLoadingFollowing(false);
       }
-      
-      const responseData = await response.json();
-      console.log('Respuesta de seguidos:', responseData);
-      
-      if (responseData.data && Array.isArray(responseData.data)) {
-        // Actualizar el contador de seguidos para mantener la consistencia
-        const followingCount = responseData.pagination?.total || responseData.data.length;
-        
-        // Actualizar el valor de userData para reflejar el conteo real
-        setUserData(prevData => ({
-          ...prevData,
-          following: followingCount
-        }));
-        
-        // Formatear los datos para el componente AstronautsList
-        const formattedFollowing = responseData.data.map(follow => ({
-          id: follow.seguido.id,
-          username: follow.seguido.username,
-          profilePic: follow.seguido.profilePic,
-          bio: follow.seguido.bio,
-          isFollowing: follow.seguido.isFollowing || true,
-          createdAt: follow.createdAt
-        }));
-        
-        setFollowing(formattedFollowing);
-        console.log('Seguidos formateados:', formattedFollowing);
-      } else {
-        throw new Error('Formato de datos inesperado');
-      }
-    } catch (err) {
-      console.error('Error fetching following:', err);
-      setFollowingError(err.message || 'Error al cargar usuarios seguidos');
-    } finally {
-      setLoadingFollowing(false);
+    };
+    
+    if (!loading && activeTab === 'following') {
+      fetchFollowing();
     }
-  };
-  
-  if (!loading) {
-    fetchFollowing();
-  }
-}, [loading, activeTab, refreshFollow]);
+  }, [loading, activeTab, refreshFollow]);
 
   const initialUserData = {
-  name: userData.username,
-  email: userData.email,
-  bio: userData.bio || '',
-  profilePic: userData.profilePic
-};
+    name: userData.username,
+    email: userData.email,
+    bio: userData.bio || '',
+    profilePic: userData.profilePic
+  };
 
   // Manejar la creación de una nueva publicación
   const handlePostCreated = () => {
-    // Incrementar el contador para forzar la recarga de publicaciones
     setRefreshPosts(prev => prev + 1);
   };
 
   // Manejar la eliminación de una publicación
   const handlePostDeleted = (postId) => {
-    // Si es "refresh", simplemente recargamos todas las publicaciones
     if (postId === "refresh") {
       setRefreshPosts(prev => prev + 1);
       return;
     }
     
-    // Si es un ID específico, eliminamos esa publicación del estado
     setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
     setMediaPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
   };
@@ -428,12 +611,10 @@ const Profile = () => {
                 <h4 className="text-gray-400 text-sm">Email</h4>
                 <p>{userData.email}</p>
               </div>
-
               <div>
                 <h4 className="text-gray-400 text-sm">Biografía</h4>
                 <p>{userData.bio}</p>
               </div>
-
               <div>
                 <h4 className="text-gray-400 text-sm">Se unió</h4>
                 <p>{userData.joinDate}</p>
@@ -446,14 +627,13 @@ const Profile = () => {
         return (
           <div>
             <h3 className="text-lg font-medium mb-4">Seguidores ({userData.followers})</h3>
-            {followers.length != 0 && (
+            
             <AstronautsList 
               astronauts={followers} 
               loading={loadingFollowers} 
               error={followersError} 
               onRetry={() => setRefreshFollow(prev => prev + 1)}
             />
-            )}
             
             {!loadingFollowers && !followersError && followers.length === 0 && (
               <div className="p-6 bg-gray-800 bg-opacity-60 rounded-lg text-center">
@@ -470,14 +650,13 @@ const Profile = () => {
         return (
           <div>
             <h3 className="text-lg font-medium mb-4">Seguidos ({userData.following})</h3>
-            {following.length != 0 && (
+            
             <AstronautsList 
               astronauts={following} 
               loading={loadingFollowing} 
               error={followingError} 
               onRetry={() => setRefreshFollow(prev => prev + 1)}
             />
-            )}
             
             {!loadingFollowing && !followingError && following.length === 0 && (
               <div className="p-6 bg-gray-800 bg-opacity-60 rounded-lg text-center">
@@ -504,29 +683,24 @@ const Profile = () => {
               <div className="p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md">
                 <h3 className="text-lg font-medium mb-2">Galería Multimedia</h3>
                 <p className="text-sm text-gray-400 mb-4">
-                  {mediaPosts.length === 0 
-                    ? "Aún no tienes contenido multimedia. Cuando subas fotos o videos aparecerán aquí." 
-                    : `Mostrando ${mediaPosts.length} elemento${mediaPosts.length !== 1 ? 's' : ''} multimedia.`
-                  }
+                  Mostrando {mediaPosts.length} elemento{mediaPosts.length !== 1 ? 's' : ''} multimedia.
+
                 </p>
-                
-                {/* Usando el componente MediaGallery */}
                 <MediaGallery mediaPosts={mediaPosts} />
               </div>
             )}
           </div>
-      );
-
-      case 'favorites':
-        // Podríamos implementar una pestaña para mostrar publicaciones guardadas o con "me gusta"
-        return ( 
-          <div className="p-4 bg-gray-800 rounded-lg shadow-md text-center">
-            <h3 className="text-lg font-medium mb-3">Favoritos</h3>
-            <p className="text-gray-400">
-              Esta característica aún no está disponible. Pronto podrás ver aquí tus publicaciones favoritas.
-            </p>
-          </div>
         );
+
+      // case 'favorites':
+      //   return ( 
+      //     <div className="p-4 bg-gray-800 rounded-lg shadow-md text-center">
+      //       <h3 className="text-lg font-medium mb-3">Favoritos</h3>
+      //       <p className="text-gray-400">
+      //         Esta característica aún no está disponible. Pronto podrás ver aquí tus publicaciones favoritas.
+      //       </p>
+      //     </div>
+      //   );
       default:
         return null;
     }
@@ -549,32 +723,27 @@ const Profile = () => {
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-gray-200 bg-fixed">
       <Header className="sticky top-0 z-10" />
 
-       {/* Error message if any */}
-       {error && (
+      {error && (
         <div className="container mx-auto px-4 py-4">
           <div className="bg-red-500 bg-opacity-70 text-white p-3 rounded-lg">
             {error}
           </div>
         </div>
-       )}
+      )}
 
-       {/* User Edit Modal */}
-       <UserEdit
+      <UserEdit
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)}
         initialUser={initialUserData}
       />
       
       <main className="container mx-auto px-4 py-6 flex flex-col md:flex-row relative">
-        {/* Sidebar izquierdo */}
         <LeftSidebar />
 
-        {/* Contenido principal del perfil */}
         <section className="w-full md:w-2/3 md:px-4">
-          {/* Cabecera de perfil simplificada */}
           <div className="bg-gray-800 rounded-lg shadow-md p-6">
             <div className="flex flex-col sm:flex-row sm:items-center relative">
-              {/* Avatar con imagen o inicial */}
+              {/* Avatar principal del perfil */}
               <div className="w-24 h-24 rounded-full bg-purple-900 flex items-center justify-center border-4 border-purple-500 mb-4 sm:mb-0 overflow-hidden">
                 {userData.profilePic ? (
                   <img 
@@ -625,7 +794,6 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Secciones de perfil */}
           <div className="mt-6 flex flex-wrap gap-2">
             <button 
               className={`px-4 py-2 rounded-lg text-white flex items-center transition-colors ${activeTab === 'posts' ? 'bg-gradient-to-r from-blue-900 via-purple-900 to-blue-900 bg-opacity-100' : 'bg-gray-800 hover:bg-gray-700'} cursor-pointer`}
@@ -662,16 +830,15 @@ const Profile = () => {
               <Image size={16} className="mr-2" />
               Multimedia
             </button>
-            <button 
+            {/* <button 
               className={`px-4 py-2 rounded-lg text-white flex items-center transition-colors ${activeTab === 'favorites' ? 'bg-gradient-to-r from-blue-900 via-purple-900 to-blue-900 bg-opacity-100' : 'bg-gray-800 hover:bg-gray-700'} cursor-pointer`}
               onClick={() => setActiveTab('favorites')}
             >
               <Bookmark size={16} className="mr-2" />
               Favoritos
-            </button>
+            </button> */}
           </div>
 
-          {/* Contenido de la pestaña activa */}
           <div className="mt-6">
             {renderTabContent()}
           </div>

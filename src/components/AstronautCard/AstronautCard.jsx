@@ -140,7 +140,7 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
                     {!isProfile && (
                         <button
                             onClick={handleFollow}
-                            className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            className={`px-3 py-1 rounded-full text-sm font-medium cursor-pointer ${
                                 isFollowing 
                                     ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
                                     : 'bg-purple-600 text-white hover:bg-purple-700'
@@ -152,7 +152,7 @@ const AstronautCard = ({ astronaut, isProfile = false }) => {
                     
                     <button
                         onClick={navigateToProfile}
-                        className="px-3 py-1 rounded-full bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 flex items-center"
+                        className="px-3 py-1 rounded-full bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 flex items-center cursor-pointer"
                     >
                         <User size={14} className="mr-1" />
                         Ver perfil

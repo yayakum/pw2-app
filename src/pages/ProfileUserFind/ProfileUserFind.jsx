@@ -1,33 +1,252 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import LeftSidebar from '../../components/LeftSidebar/LeftSidebar';
-import { Users, MessageCircle, Info, Bookmark, Image, UserPlus } from 'lucide-react';
+import { Edit, Users, MessageCircle, Info, Bookmark, Image, UserPlus, User, ArrowLeft } from 'lucide-react';
 import PostsList from '../../components/PostList/PostList';
 import MediaGallery from '../../components/MediaGallery/MediaGallery';
-import AstronautsList from '../../components/AstronautsList/AstronautsList';
+import { useNavigate, useParams } from 'react-router-dom';
 const backendURL = import.meta.env.VITE_BACKEND_URL;
 
+// Componente para mostrar avatar de usuario con fetch de imagen
+const UserAvatar = ({ userId, username, size = 'w-10 h-10', className = '' }) => {
+  const [profileImage, setProfileImage] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+
+        const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id;
+        const isCurrentUser = userId === parseInt(currentUserId);
+        
+        const url = isCurrentUser 
+          ? `${backendURL}/profile`
+          : `${backendURL}/profile/${userId}`;
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          setProfileImage(userData.profilePic);
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [userId]);
+
+  return (
+    <div className={`${size} rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500 overflow-hidden ${className}`}>
+      {loading ? (
+        <div className="animate-pulse bg-gray-600 w-full h-full rounded-full"></div>
+      ) : profileImage ? (
+        <img 
+          src={`data:image/jpeg;base64,${profileImage}`}
+          alt={username}
+          className="w-full h-full object-cover rounded-full"
+          onError={() => setProfileImage(null)}
+        />
+      ) : (
+        <span className="text-white font-bold">{username?.charAt(0).toUpperCase() || 'U'}</span>
+      )}
+    </div>
+  );
+};
+
+// Componente para mostrar una tarjeta de astronauta en la lista
+const AstronautCard = ({ astronaut, isProfile = false }) => {
+  const navigate = useNavigate();
+  const [isFollowing, setIsFollowing] = useState(astronaut.isFollowing || false);
+  
+  // Obtener el ID del usuario actual
+  const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id;
+  const isCurrentUser = astronaut.id === parseInt(currentUserId);
+
+  const getUserName = () => {
+    const username = astronaut?.username || "Usuario";
+    return isCurrentUser ? `${username} (Tú)` : username;
+  };
+
+  // Función para manejar el seguimiento
+  const handleFollow = async (e) => {
+    e.stopPropagation();
+    
+    // No permitir seguirse a sí mismo
+    if (isCurrentUser) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No hay token de autenticación');
+      }
+      
+      const url = isFollowing 
+        ? `${backendURL}/unfollowUser/${astronaut.id}`
+        : `${backendURL}/followUser/${astronaut.id}`;
+        
+      const method = isFollowing ? 'DELETE' : 'POST';
+      
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al seguir/dejar de seguir al usuario');
+      }
+      
+      setIsFollowing(!isFollowing);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+  
+  // Navegar al perfil del astronauta
+  const navigateToProfile = () => {
+    if (isCurrentUser) {
+      // Si es el usuario actual, navegar a /Profile sin ID
+      navigate('/Profile');
+    } else {
+      // Si es otro usuario, navegar a /Profile/{id}
+      navigate(`/Profile/${astronaut.id}`);
+    }
+  };
+
+  return (
+    <div className="bg-gray-800 bg-opacity-80 rounded-lg p-4 shadow-lg mb-3 w-full">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          {/* Avatar del usuario */}
+          <UserAvatar 
+            userId={astronaut.id}
+            username={astronaut?.username || "Usuario"}
+            className="cursor-pointer"
+          />
+          
+          {/* Información del usuario */}
+          <div>
+            <h3 className="font-bold text-white">{getUserName()}</h3>
+            <div className="flex items-center text-sm text-gray-400">
+              <span className="mr-4">
+                Desde {astronaut.createdAt 
+                  ? new Date(astronaut.createdAt).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+                  : 'marzo de 2025'}
+              </span>
+            </div>
+
+            {astronaut.bio && (
+              <p className="text-sm text-gray-300 mt-1">{astronaut.bio}</p>
+            )}
+          </div>
+        </div>
+        
+        {/* Botones de acción */}
+        <div className="flex space-x-2">
+          {!isProfile && !isCurrentUser && (
+            <button
+              onClick={handleFollow}
+              className={`px-3 py-1 rounded-full text-sm font-medium ${
+                isFollowing 
+                  ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                  : 'bg-purple-600 text-white hover:bg-purple-700'
+              }`}
+            >
+              {isFollowing ? 'Dejar de seguir' : 'Seguir'}
+            </button>
+          )}
+          
+          <button
+            onClick={navigateToProfile}
+            className="px-3 py-1 rounded-full bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 flex items-center cursor-pointer"
+          >
+            <User size={14} className="mr-1" />
+            Ver perfil
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Componente para la lista de astronautas
+const AstronautsList = ({ astronauts, loading, error, onRetry }) => {
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center p-6 bg-gray-800 bg-opacity-60 rounded-lg">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-500"></div>
+        <span className="ml-3">Cargando usuarios...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-red-500 bg-opacity-60 rounded-lg text-white">
+        <p>Error: {error}</p>
+        {onRetry && (
+          <button 
+            className="mt-2 px-3 py-1 bg-white text-red-500 rounded-md text-sm"
+            onClick={onRetry}
+          >
+            Reintentar
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {astronauts.map(astronaut => (
+        <AstronautCard 
+          key={astronaut.id} 
+          astronaut={astronaut} 
+          isProfile={false}
+        />
+      ))}
+    </div>
+  );
+};
+
 const ProfileUserFind = () => {
-  const { userId } = useParams(); // Obtener el ID del usuario de la URL
+  const navigate = useNavigate();
+  const { userId } = useParams();
   const [activeTab, setActiveTab] = useState('posts');
   const [userData, setUserData] = useState({
     username: "Cargando...",
-    bio: "",
+    email: "Cargando...",
     joinDate: "Cargando...",
-    isFollowing: false,
     followers: 0,
     following: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isFollowing, setIsFollowing] = useState(false);
   
   // Estados para las publicaciones
   const [posts, setPosts] = useState([]);
   const [mediaPosts, setMediaPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [postsError, setPostsError] = useState(null);
-  const [refreshPosts, setRefreshPosts] = useState(0); // Para forzar la recarga
+  const [refreshPosts, setRefreshPosts] = useState(0);
 
   // Estados para seguidores y seguidos
   const [followers, setFollowers] = useState([]);
@@ -36,7 +255,7 @@ const ProfileUserFind = () => {
   const [loadingFollowing, setLoadingFollowing] = useState(false);
   const [followersError, setFollowersError] = useState(null);
   const [followingError, setFollowingError] = useState(null);
-  const [refreshFollow, setRefreshFollow] = useState(0); // Para forzar la recarga
+  const [refreshFollow, setRefreshFollow] = useState(0);
 
   // Función para formatear la fecha y hora en formato "hace X tiempo"
   const formatTimestamp = (timestamp) => {
@@ -58,20 +277,19 @@ const ProfileUserFind = () => {
     }
   };
 
-  // Función para manejar el seguimiento del usuario
-  const handleFollowToggle = async () => {
+  // Función para seguir/dejar de seguir usuario
+  const handleFollowUser = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('No hay token de autenticación');
       }
       
-      // Determinar la URL y método correctos según el estado actual
-      const url = userData.isFollowing 
+      const url = isFollowing 
         ? `${backendURL}/unfollowUser/${userId}`
         : `${backendURL}/followUser/${userId}`;
         
-      const method = userData.isFollowing ? 'DELETE' : 'POST';
+      const method = isFollowing ? 'DELETE' : 'POST';
       
       const response = await fetch(url, {
         method: method,
@@ -85,29 +303,22 @@ const ProfileUserFind = () => {
         throw new Error('Error al seguir/dejar de seguir al usuario');
       }
       
-      // Actualizar estado local
-      setUserData(prevData => ({
-        ...prevData,
-        isFollowing: !prevData.isFollowing,
-        followers: prevData.isFollowing 
-          ? prevData.followers - 1 
-          : prevData.followers + 1
+      setIsFollowing(!isFollowing);
+      
+      // Actualizar contador de seguidores
+      setUserData(prev => ({
+        ...prev,
+        followers: isFollowing ? prev.followers - 1 : prev.followers + 1
       }));
-
-      // Forzar recarga de seguidores/seguidos
-      setRefreshFollow(prev => prev + 1);
-    } catch (err) {
-      console.error('Error toggling follow:', err);
-      setError(err.message);
+      
+    } catch (error) {
+      console.error('Error:', error);
     }
   };
 
   // Obtener datos del usuario al cargar el componente
   useEffect(() => {
     const fetchUserProfile = async () => {
-      setLoading(true);
-      setError(null);
-      
       try {
         const token = localStorage.getItem('token');
         
@@ -115,8 +326,11 @@ const ProfileUserFind = () => {
           throw new Error('No se encontró token de autenticación');
         }
         
-        // Hacer una solicitud al backend para obtener los datos del perfil de otro usuario
-        const response = await fetch(`${backendURL}/Profile/${userId}`, {
+        if (!userId) {
+          throw new Error('ID de usuario no proporcionado');
+        }
+        
+        const response = await fetch(`${backendURL}/profile/${userId}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -130,23 +344,20 @@ const ProfileUserFind = () => {
         
         const profileData = await response.json();
         
-        // Formateamos la fecha de creación
         const joinDate = new Date(profileData.createdAt);
         const formattedJoinDate = joinDate.toLocaleDateString('es-ES', {
           year: 'numeric',
           month: 'long'
         });
         
-        // Actualizamos el estado con los datos completos
         setUserData({
           ...profileData,
-          username: profileData.username || 'Usuario',
           joinDate: formattedJoinDate,
-          isFollowing: profileData.isFollowing || false,
           followers: profileData._count?.seguidores || 0,
           following: profileData._count?.siguiendo || 0
         });
         
+        setIsFollowing(profileData.isFollowing || false);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching profile:', err);
@@ -155,9 +366,7 @@ const ProfileUserFind = () => {
       }
     };
     
-    if (userId) {
-      fetchUserProfile();
-    }
+    fetchUserProfile();
   }, [userId]);
 
   // Cargar las publicaciones del usuario
@@ -170,10 +379,9 @@ const ProfileUserFind = () => {
         const token = localStorage.getItem('token');
         
         if (!token || !userId) {
-          throw new Error('No se encontró información de usuario necesaria');
+          throw new Error('No se encontró información necesaria');
         }
         
-        // Obtener las publicaciones del usuario
         const response = await fetch(`${backendURL}/getUserPosts/${userId}`, {
           method: 'GET',
           headers: {
@@ -188,7 +396,6 @@ const ProfileUserFind = () => {
         
         const responseData = await response.json();
         
-        // Verificar si la respuesta tiene la estructura esperada
         if (responseData.data && Array.isArray(responseData.data)) {
           const formattedPosts = responseData.data.map(post => {
             return {
@@ -214,7 +421,6 @@ const ProfileUserFind = () => {
           
           setPosts(formattedPosts);
           
-          // Filtramos las publicaciones que contienen contenido multimedia
           const mediaContent = formattedPosts.filter(post => 
             post.content && post.contentType && 
             (post.contentType.startsWith('image/') || post.contentType.startsWith('video/'))
@@ -235,7 +441,7 @@ const ProfileUserFind = () => {
     if (!loading && userId) {
       fetchUserPosts();
     }
-  }, [loading, refreshPosts, userId]);
+  }, [loading, userId, refreshPosts]);
 
   // Cargar seguidores
   useEffect(() => {
@@ -247,7 +453,7 @@ const ProfileUserFind = () => {
         const token = localStorage.getItem('token');
         
         if (!token || !userId) {
-          throw new Error('No se encontró información de usuario necesaria');
+          throw new Error('No se encontró información necesaria');
         }
         
         const response = await fetch(`${backendURL}/getUserFollowers/${userId}`, {
@@ -265,20 +471,9 @@ const ProfileUserFind = () => {
         const responseData = await response.json();
         
         if (responseData.data && Array.isArray(responseData.data)) {
-          // Actualizar el contador de seguidores para mantener la consistencia
-          const followerCount = responseData.pagination?.total || responseData.data.length;
-          
-          // Actualizar el valor de userData para reflejar el conteo real
-          setUserData(prevData => ({
-            ...prevData,
-            followers: followerCount
-          }));
-          
-          // Formatear los datos para el componente AstronautsList
           const formattedFollowers = responseData.data.map(follower => ({
             id: follower.seguidor.id,
             username: follower.seguidor.username,
-            profilePic: follower.seguidor.profilePic,
             bio: follower.seguidor.bio,
             isFollowing: follower.seguidor.isFollowing,
             createdAt: follower.createdAt
@@ -296,10 +491,10 @@ const ProfileUserFind = () => {
       }
     };
     
-    if (!loading && activeTab === 'followers') {
+    if (!loading && activeTab === 'followers' && userId) {
       fetchFollowers();
     }
-  }, [loading, activeTab, refreshFollow, userId]);
+  }, [loading, activeTab, userId, refreshFollow]);
 
   // Cargar seguidos
   useEffect(() => {
@@ -311,7 +506,7 @@ const ProfileUserFind = () => {
         const token = localStorage.getItem('token');
         
         if (!token || !userId) {
-          throw new Error('No se encontró información de usuario necesaria');
+          throw new Error('No se encontró información necesaria');
         }
         
         const response = await fetch(`${backendURL}/getUserFollowing/${userId}`, {
@@ -329,20 +524,9 @@ const ProfileUserFind = () => {
         const responseData = await response.json();
         
         if (responseData.data && Array.isArray(responseData.data)) {
-          // Actualizar el contador de seguidos para mantener la consistencia
-          const followingCount = responseData.pagination?.total || responseData.data.length;
-          
-          // Actualizar el valor de userData para reflejar el conteo real
-          setUserData(prevData => ({
-            ...prevData,
-            following: followingCount
-          }));
-          
-          // Formatear los datos para el componente AstronautsList
           const formattedFollowing = responseData.data.map(follow => ({
             id: follow.seguido.id,
             username: follow.seguido.username,
-            profilePic: follow.seguido.profilePic,
             bio: follow.seguido.bio,
             isFollowing: follow.seguido.isFollowing || true,
             createdAt: follow.createdAt
@@ -360,10 +544,10 @@ const ProfileUserFind = () => {
       }
     };
     
-    if (!loading && activeTab === 'following') {
+    if (!loading && activeTab === 'following' && userId) {
       fetchFollowing();
     }
-  }, [loading, activeTab, refreshFollow, userId]);
+  }, [loading, activeTab, userId, refreshFollow]);
 
   // Manejar actualización de seguidores/seguidos
   const handleFollowUpdate = () => {
@@ -397,9 +581,9 @@ const ProfileUserFind = () => {
             
             {!loadingPosts && !postsError && posts.length === 0 && (
               <div className="p-6 bg-gray-800 bg-opacity-60 rounded-lg text-center">
-                <h3 className="text-xl font-medium mb-3">No hay publicaciones disponibles</h3>
+                <h3 className="text-xl font-medium mb-3">Este usuario no ha publicado nada aún</h3>
                 <p className="text-gray-400">
-                  Este usuario aún no ha realizado ninguna publicación.
+                  Las publicaciones aparecerán aquí cuando el usuario comparta contenido.
                 </p>
               </div>
             )}
@@ -407,7 +591,6 @@ const ProfileUserFind = () => {
             {!loadingPosts && !postsError && posts.length > 0 && (
               <PostsList 
                 posts={posts} 
-                viewOnly={true} // Modo solo lectura para el perfil de otro usuario
               />
             )}
           </div>
@@ -422,12 +605,10 @@ const ProfileUserFind = () => {
                 <h4 className="text-gray-400 text-sm">Nombre</h4>
                 <p>{userData.username}</p>
               </div>
-              {userData.bio && (
-                <div>
-                  <h4 className="text-gray-400 text-sm">Bio</h4>
-                  <p>{userData.bio}</p>
-                </div>
-              )}
+              <div>
+                <h4 className="text-gray-400 text-sm">Biografía</h4>
+                <p>{userData.bio || ''}</p>
+              </div>
               <div>
                 <h4 className="text-gray-400 text-sm">Se unió</h4>
                 <p>{userData.joinDate}</p>
@@ -440,19 +621,19 @@ const ProfileUserFind = () => {
         return (
           <div>
             <h3 className="text-lg font-medium mb-4">Seguidores ({userData.followers})</h3>
+            
             <AstronautsList 
               astronauts={followers} 
               loading={loadingFollowers} 
               error={followersError} 
               onRetry={() => setRefreshFollow(prev => prev + 1)}
-              onFollowUpdate={handleFollowUpdate}
             />
             
             {!loadingFollowers && !followersError && followers.length === 0 && (
               <div className="p-6 bg-gray-800 bg-opacity-60 rounded-lg text-center">
-                <h3 className="text-xl font-medium mb-3">Este usuario aún no tiene seguidores</h3>
+                <h3 className="text-xl font-medium mb-3">Este usuario no tiene seguidores aún</h3>
                 <p className="text-gray-400">
-                  Cuando alguien lo siga, aparecerá en esta lista.
+                  Los seguidores aparecerán en esta lista.
                 </p>
               </div>
             )}
@@ -463,19 +644,19 @@ const ProfileUserFind = () => {
         return (
           <div>
             <h3 className="text-lg font-medium mb-4">Seguidos ({userData.following})</h3>
+            
             <AstronautsList 
               astronauts={following} 
               loading={loadingFollowing} 
               error={followingError} 
               onRetry={() => setRefreshFollow(prev => prev + 1)}
-              onFollowUpdate={handleFollowUpdate}
             />
             
             {!loadingFollowing && !followingError && following.length === 0 && (
               <div className="p-6 bg-gray-800 bg-opacity-60 rounded-lg text-center">
                 <h3 className="text-xl font-medium mb-3">Este usuario no sigue a nadie todavía</h3>
                 <p className="text-gray-400">
-                  Los usuarios que siga aparecerán en esta lista.
+                  Los usuarios seguidos aparecerán en esta lista.
                 </p>
               </div>
             )}
@@ -497,7 +678,7 @@ const ProfileUserFind = () => {
                 <h3 className="text-lg font-medium mb-2">Galería Multimedia</h3>
                 <p className="text-sm text-gray-400 mb-4">
                   {mediaPosts.length === 0 
-                    ? "Este usuario aún no tiene contenido multimedia." 
+                    ? "Este usuario no tiene contenido multimedia. Las fotos y videos aparecerán aquí." 
                     : `Mostrando ${mediaPosts.length} elemento${mediaPosts.length !== 1 ? 's' : ''} multimedia.`
                   }
                 </p>
@@ -526,50 +707,73 @@ const ProfileUserFind = () => {
     );
   }
 
+  // Mostrar error si no se puede cargar el perfil
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-gray-200 bg-fixed">
+        <Header className="sticky top-0 z-10" />
+        <div className="container mx-auto px-4 py-12">
+          <div className="bg-red-500 bg-opacity-70 text-white p-6 rounded-lg text-center ">
+            <h2 className="text-xl font-bold mb-2">Error al cargar el perfil</h2>
+            <p className="mb-4">{error}</p>
+            <button 
+              onClick={() => navigate(-1)}
+              className="bg-white text-red-500 px-4 py-2 rounded-md font-medium cursor-pointer"
+            >
+              Volver
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-gray-200 bg-fixed">
       <Header className="sticky top-0 z-10" />
-
-       {/* Error message if any */}
-       {error && (
-        <div className="container mx-auto px-4 py-4">
-          <div className="bg-red-500 bg-opacity-70 text-white p-3 rounded-lg">
-            {error}
-          </div>
-        </div>
-       )}
       
       <main className="container mx-auto px-4 py-6 flex flex-col md:flex-row relative">
-        {/* Sidebar izquierdo */}
         <LeftSidebar />
 
-        {/* Contenido principal del perfil */}
         <section className="w-full md:w-2/3 md:px-4">
-          {/* Cabecera de perfil simplificada */}
+          {/* Botón para volver */}
+          <div className="mb-4">
+            <button 
+              onClick={() => navigate(-1)}
+              className="flex items-center text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
+            >
+              <ArrowLeft size={20} className="mr-2" />
+              Volver
+            </button>
+          </div>
+
+          {/* Cabecera de perfil */}
           <div className="bg-gray-800 rounded-lg shadow-md p-6">
             <div className="flex flex-col sm:flex-row sm:items-center relative">
-              {/* Avatar como elemento de texto o imagen si hay profilePic */}
+              {/* Avatar principal del perfil */}
               <div className="w-24 h-24 rounded-full bg-purple-900 flex items-center justify-center border-4 border-purple-500 mb-4 sm:mb-0 overflow-hidden">
-  {userData.profilePic ? (
-    <img 
-      src={`data:image;base64,${userData.profilePic}`} 
-      alt={`${userData.username} avatar`}
-      className="w-full h-full object-cover"
-      onError={(e) => {
-        console.error('Error al cargar la imagen:', e);
-        console.log('URL de la imagen:', e.target.src.substring(0, 100) + '...');
-      }}
-    />
-  ) : (
-    <span className="text-white text-4xl font-bold">
-      {userData.username ? userData.username.charAt(0).toUpperCase() : 'U'}
-    </span>
-  )}
-</div>
+                {userData.profilePic ? (
+                  <img 
+                    src={`data:image;base64,${userData.profilePic}`} 
+                    alt={`${userData.username} avatar`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('Error al cargar la imagen:', e);
+                    }}
+                  />
+                ) : (
+                  <span className="text-white text-4xl font-bold">
+                    {userData.username ? userData.username.charAt(0).toUpperCase() : 'U'}
+                  </span>
+                )}
+              </div>
               
               <div className="ml-0 sm:ml-6">
                 <h2 className="text-2xl font-semibold">{userData.username}</h2>
                 <p className="text-gray-400">Miembro desde {userData.joinDate}</p>
+                {userData.bio && (
+                  <p className="text-gray-300 mt-2">{userData.bio}</p>
+                )}
                 <div className="mt-2 flex flex-wrap gap-3">
                   <div className="flex items-center text-sm text-gray-400">
                     <MessageCircle size={16} className="mr-1" />
@@ -589,20 +793,23 @@ const ProfileUserFind = () => {
                   </div>
                 </div>
               </div>
+              
+              {/* Botón de seguir */}
               <button
-                onClick={handleFollowToggle}
+                onClick={handleFollowUser}
                 className={`mt-4 sm:mt-0 sm:ml-auto px-4 py-2 rounded-md text-white flex items-center transition-colors cursor-pointer ${
-                  userData.isFollowing 
+                  isFollowing 
                     ? 'bg-gray-700 hover:bg-gray-600' 
                     : 'bg-purple-600 hover:bg-purple-700'
                 }`}
               >
-                {userData.isFollowing ? 'Dejar de seguir' : 'Seguir'}
+                <UserPlus size={16} className="mr-2" />
+                {isFollowing ? 'Dejar de seguir' : 'Seguir'}
               </button>
             </div>
           </div>
 
-          {/* Secciones de perfil */}
+          {/* Pestañas de navegación */}
           <div className="mt-6 flex flex-wrap gap-2">
             <button 
               className={`px-4 py-2 rounded-lg text-white flex items-center transition-colors ${activeTab === 'posts' ? 'bg-gradient-to-r from-blue-900 via-purple-900 to-blue-900 bg-opacity-100' : 'bg-gray-800 hover:bg-gray-700'} cursor-pointer`}

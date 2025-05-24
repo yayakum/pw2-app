@@ -135,7 +135,7 @@ const UserEdit = ({ isOpen, onClose, initialUser }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="w-full max-w-md p-8 rounded-xl bg-gray-900 bg-opacity-90 backdrop-blur-sm shadow-2xl border border-purple-500 relative">
         {/* Botón de cierre */}
         <button 

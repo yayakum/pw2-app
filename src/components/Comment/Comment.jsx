@@ -506,7 +506,7 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
   };
 
   return (
-    <div className="fixed inset-0 backdrop-blur-sm shadow-2xl flex items-center justify-center z-50 px-4 bg-opacity-50">
+    <div className="fixed inset-0 backdrop-blur-sm shadow-2xl flex items-center justify-center z-50 px-4 bg-black/50">
       <div 
         ref={modalRef}
         className="bg-gray-800 rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col"
@@ -516,7 +516,7 @@ const CommentsModal = ({ isOpen, onClose, postId, comments: initialComments, onC
           <h3 className="text-lg font-medium">Comentarios</h3>
           <button 
             onClick={onClose}
-            className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700"
+            className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700 cursor-pointer"
           >
             <X size={20} />
           </button>

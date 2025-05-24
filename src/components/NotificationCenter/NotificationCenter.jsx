@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Bell, 
@@ -11,9 +11,15 @@ import {
   MoreVertical,
   Check,
   CheckCheck,
-  Image
+  Image,
+  Volume2,
+  VolumeX
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import io from 'socket.io-client';
+
 const backendURL = import.meta.env.VITE_BACKEND_URL;
+
 // Mapa de iconos para diferentes tipos de notificaciones
 const notificationIcons = {
   message: MessageCircle,
@@ -69,20 +75,134 @@ const getNotificationText = (notification) => {
       return `${username} comenzó a seguirte`;
     case 'new_post':
       return `${username} hizo una nueva publicación`;
+    case 'message':
+      return `${username} te envió un mensaje`;
     default:
       return `Nueva notificación de ${username}`;
   }
 };
 
+// Función para reproducir sonido de notificación
+const playNotificationSound = () => {
+  try {
+    // Crear un sonido simple usando Web Audio API
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  } catch (error) {
+    console.log('No se pudo reproducir el sonido de notificación');
+  }
+};
+
 const NotificationCenter = () => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [profileImages, setProfileImages] = useState({}); // Estado para las imágenes de perfil
-  const [loadingImages, setLoadingImages] = useState({}); // Estado para loading de imágenes
+  const [profileImages, setProfileImages] = useState({});
+  const [loadingImages, setLoadingImages] = useState({});
+  const [socket, setSocket] = useState(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [newNotifications, setNewNotifications] = useState(new Set()); // Para trackear notificaciones nuevas
+  const bellRef = useRef(null);
+
+  // Configurar Socket.IO para notificaciones en tiempo real
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const newSocket = io(backendURL, {
+      auth: { token }
+    });
+
+    newSocket.on('connect', () => {
+      console.log('Conectado para notificaciones en tiempo real');
+    });
+
+    // Escuchar nuevas notificaciones con animaciones mejoradas
+    newSocket.on('new_notification', (notificationData) => {
+      console.log('Nueva notificación recibida:', notificationData);
+      
+      // Animar el icono de la campana
+      if (bellRef.current) {
+        bellRef.current.style.animation = 'none';
+        bellRef.current.offsetHeight; // Trigger reflow
+        bellRef.current.style.animation = 'bellShake 0.5s ease-in-out';
+      }
+      
+      // Reproducir sonido si está habilitado
+      if (soundEnabled) {
+        playNotificationSound();
+      }
+      
+      // Actualizar el contador de notificaciones no leídas
+      setUnreadCount(prev => prev + 1);
+      
+      // Si el panel está abierto, refrescar las notificaciones
+      if (isOpen) {
+        fetchNotifications();
+      }
+      
+      // Marcar como nueva notificación para animación especial
+      if (notificationData.id) {
+        setNewNotifications(prev => new Set(prev).add(notificationData.id));
+        // Remover la marca después de 3 segundos
+        setTimeout(() => {
+          setNewNotifications(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(notificationData.id);
+            return newSet;
+          });
+        }, 3000);
+      }
+    });
+
+    newSocket.on('disconnect', () => {
+      console.log('Desconectado del servidor de notificaciones');
+    });
+
+    newSocket.on('error', (error) => {
+      console.error('Error en socket de notificaciones:', error);
+    });
+
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [isOpen, soundEnabled]);
+
+  // CSS para la animación de la campana
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes bellShake {
+        0%, 100% { transform: rotate(0deg); }
+        10%, 30%, 50%, 70%, 90% { transform: rotate(-10deg); }
+        20%, 40%, 60%, 80% { transform: rotate(10deg); }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   // Cargar el conteo de notificaciones no leídas al iniciar
   useEffect(() => {
@@ -377,21 +497,45 @@ const NotificationCenter = () => {
     setOpenMenuId(openMenuId === id ? null : id);
   };
 
-  // Manejar clic en notificación para ir a la publicación
+  // Manejar clic en notificación para navegar según el tipo
   const handleNotificationClick = (notification) => {
-    // Si la notificación tiene un ID de publicación, navegar a ella
-    if (notification.postId) {
-      // Marcar como leída primero
-      if (!notification.isRead) {
-        markAsRead(notification.id);
-      }
-      
-      // Cerrar el menú de notificaciones
-      setIsOpen(false);
-      
-      // Navegar a la publicación (implementar según la estructura de tu aplicación)
-      // Por ejemplo:
-      // window.location.href = `/post/${notification.postId}`;
+    // Marcar como leída primero si no está leída
+    if (!notification.isRead) {
+      markAsRead(notification.id);
+    }
+    
+    // Cerrar el menú de notificaciones
+    setIsOpen(false);
+    
+    // Navegar según el tipo de notificación
+    switch (notification.type) {
+      case 'message':
+        // Navegar al chat con el usuario que envió el mensaje
+        if (notification.fromUserId) {
+          navigate('/chats', { 
+            state: { 
+              selectedUserId: notification.fromUserId,
+              selectedUsername: notification.fromUser?.username 
+            }
+          });
+        }
+        break;
+      case 'like':
+      case 'comment':
+      case 'new_post':
+        // Navegar a la publicación si existe
+        if (notification.postId) {
+          navigate(`/post/${notification.postId}`);
+        }
+        break;
+      case 'follow':
+        // Navegar al perfil del usuario
+        if (notification.fromUserId) {
+          navigate(`/profile/${notification.fromUserId}`);
+        }
+        break;
+      default:
+        console.log('Tipo de notificación no manejado:', notification.type);
     }
   };
 
@@ -401,25 +545,41 @@ const NotificationCenter = () => {
         onClick={() => setIsOpen(!isOpen)} 
         className="p-2 rounded-full hover:bg-gray-700 relative cursor-pointer hover:scale-105 duration-300 transition-all"
       >
-        <Bell size={24} className="text-white" />
+        <Bell 
+          ref={bellRef}
+          size={24} 
+          className="text-white" 
+        />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 text-xs text-white bg-red-500 rounded-full flex items-center justify-center cursor-pointer">
-            {unreadCount}
-          </span>
+          <motion.span 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute -top-1 -right-1 w-5 h-5 text-xs text-white bg-red-500 rounded-full flex items-center justify-center cursor-pointer"
+          >
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </motion.span>
         )}
       </button>
       
       <AnimatePresence>
         {isOpen && (
           <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
             className="absolute right-0 mt-2 w-96 bg-gray-800 text-white rounded-xl shadow-2xl border-2 border-gray-700 overflow-hidden z-50"
           >
             <div className="flex justify-between items-center p-4 border-b border-gray-700 bg-gray-900">
               <span className="font-bold text-lg">Notificaciones</span>
-              <div className="flex gap-3">
+              <div className="flex gap-3 items-center">
+                <button 
+                  onClick={() => setSoundEnabled(!soundEnabled)}
+                  className={`p-1 rounded transition-colors ${soundEnabled ? 'text-blue-400 hover:text-blue-600' : 'text-gray-500 hover:text-gray-400'}`}
+                  title={soundEnabled ? 'Silenciar notificaciones' : 'Activar sonido'}
+                >
+                  {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+                </button>
                 <button 
                   onClick={markAllAsRead} 
                   className="text-blue-400 hover:text-blue-600 transition-colors flex items-center space-x-1 cursor-pointer"
@@ -467,6 +627,7 @@ const NotificationCenter = () => {
                       const NotificationIcon = notificationIcons[notification.type] || notificationIcons.default;
                       const iconColor = notificationColors[notification.type] || notificationColors.default;
                       const notificationText = getNotificationText(notification);
+                      const isNew = newNotifications.has(notification.id);
                       
                       // Obtener el userId del fromUser
                       const fromUserId = notification.fromUserId || notification.fromUser?.id;
@@ -478,16 +639,21 @@ const NotificationCenter = () => {
                         <motion.div
                           key={notification.id}
                           initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
+                          animate={{ 
+                            opacity: 1, 
+                            x: 0,
+                            backgroundColor: isNew ? 'rgba(59, 130, 246, 0.1)' : 'transparent'
+                          }}
                           exit={{ opacity: 0, x: -20 }}
-                          className={`flex justify-between items-center p-4 border-b border-gray-700 hover:bg-gray-700 transition-colors ${notification.isRead ? 'opacity-70' : ''}`}
+                          transition={{ duration: 0.3 }}
+                          className={`flex justify-between items-center p-4 border-b border-gray-700 hover:bg-gray-700 transition-colors ${notification.isRead ? 'opacity-70' : ''} ${isNew ? 'border-l-4 border-blue-500' : ''}`}
                         >
                           <div 
                             className="flex items-start space-x-3 cursor-pointer flex-1"
                             onClick={() => handleNotificationClick(notification)}
                           >
                             {/* Avatar del usuario */}
-                            <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center overflow-hidden border border-gray-600">
+                            <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center overflow-hidden border border-gray-600 relative">
                               {isLoadingImage ? (
                                 <div className="animate-pulse bg-gray-600 w-full h-full rounded-full"></div>
                               ) : userProfileImage ? (
@@ -508,10 +674,18 @@ const NotificationCenter = () => {
                                   )}
                                 </div>
                               )}
+                              {/* Indicador de nueva notificación */}
+                              {isNew && (
+                                <motion.div
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full"
+                                />
+                              )}
                             </div>
                             
                             <div className="flex-1">
-                              <div className={`text-sm ${notification.isRead ? 'text-gray-400' : 'text-white'}`}>
+                              <div className={`text-sm ${notification.isRead ? 'text-gray-400' : 'text-white'} ${isNew ? 'font-semibold' : ''}`}>
                                 {notificationText}
                               </div>
                               <div className="text-xs text-gray-500 mt-1">
@@ -529,7 +703,11 @@ const NotificationCenter = () => {
                             </button>
                             
                             {openMenuId === notification.id && (
-                              <div className="absolute right-0 mt-1 w-36 bg-gray-900 rounded-md shadow-lg border border-gray-700 z-10">
+                              <motion.div 
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="absolute right-0 mt-1 w-36 bg-gray-900 rounded-md shadow-lg border border-gray-700 z-10"
+                              >
                                 {!notification.isRead && (
                                   <button 
                                     onClick={() => markAsRead(notification.id)}
@@ -546,17 +724,21 @@ const NotificationCenter = () => {
                                   <Trash2 size={14} />
                                   Eliminar
                                 </button>
-                              </div>
+                              </motion.div>
                             )}
                           </div>
                         </motion.div>
                       );
                     })
                   ) : (
-                    <div className="p-8 text-center text-gray-400">
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="p-8 text-center text-gray-400"
+                    >
                       <Bell size={32} className="mx-auto mb-2 text-gray-500" />
                       <p>No hay notificaciones</p>
-                    </div>
+                    </motion.div>
                   )}
                 </AnimatePresence>
               )}

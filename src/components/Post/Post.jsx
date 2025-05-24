@@ -51,6 +51,10 @@ const Post = ({ post, onDelete }) => {
     navigate(`/profile/${post.userId}`);}
   };
 
+  const handlePostClick = () => {
+    navigate(`/post/${post.id}`);
+  };
+
   // Función para manejar likes
   const handleLike = async () => {
     // Si ya estamos procesando un like, ignorar
@@ -318,14 +322,9 @@ const Post = ({ post, onDelete }) => {
   };
 
   return (
-    <div className="mb-6 p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md relative">
+    <div className="mb-6 p-4 rounded-lg bg-gray-800 bg-opacity-60 shadow-md relative ">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
-          {/* Imagen de avatar reemplazada por un div de placeholder fijo */}
-          {/* <div className="w-10 h-10 rounded-full bg-purple-900 flex items-center justify-center border-2 border-purple-500 cursor-pointer"  onClick={handleProfileClick}>
-            
-            <span className="text-white font-bold">{getUserName().charAt(0).toUpperCase()}</span>
-          </div> */}
           <div 
   className="w-10 h-10 rounded-full flex items-center justify-center border-2 bg-purple-900 border-purple-500 cursor-pointer overflow-hidden"
   onClick={handleProfileClick}
@@ -390,7 +389,7 @@ const Post = ({ post, onDelete }) => {
           />
         ) : (
           <>
-            <p className="text-sm sm:text-base">{post.description}</p>
+            <p className="text-sm sm:text-base cursor-pointer" onClick={handlePostClick}>{post.description}</p>
             {/* Renderizar el contenido multimedia */}
             {renderMedia()}
           </>
@@ -439,10 +438,10 @@ const Post = ({ post, onDelete }) => {
           <MessageCircle size={18} />
           <span>Comentar</span>
         </button>
-        <button className="flex items-center space-x-2 text-sm text-gray-300 hover:text-white p-2 rounded-md hover:bg-gray-700 cursor-pointer">
+        {/* <button className="flex items-center space-x-2 text-sm text-gray-300 hover:text-white p-2 rounded-md hover:bg-gray-700 cursor-pointer">
           <Bookmark size={18} />
           <span>Guardar</span>
-        </button>
+        </button> */}
       </div>
       
       {/* Modal de comentarios */}

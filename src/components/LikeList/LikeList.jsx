@@ -265,7 +265,7 @@ const LikeList = ({ isOpen, onClose, postId }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm shadow-2xl bg-opacity-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm shadow-2xl bg-black/50">
       <div className="bg-gray-800 rounded-lg w-full max-w-md overflow-hidden max-h-[80vh] flex flex-col">
         {/* Encabezado */}
         <div className="flex justify-between items-center px-4 py-3 border-b border-gray-700 bg-gray-800">
@@ -276,7 +276,7 @@ const LikeList = ({ isOpen, onClose, postId }) => {
           </div>
           <button 
             onClick={onClose}
-            className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700"
+            className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700 cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -372,13 +372,13 @@ const LikeList = ({ isOpen, onClose, postId }) => {
                       {!isCurrentUser && (
                         <button 
                           onClick={() => isFollowing ? handleUnfollow(like.usuario.id) : handleFollow(like.usuario.id)}
-                          className={`px-3 py-1 rounded-full text-sm ${
+                          className={`px-3 py-1 rounded-full text-sm cursor-pointer ${
                             isFollowing 
                               ? 'bg-gray-700 text-white hover:bg-gray-600' 
                               : 'bg-purple-600 text-white hover:bg-purple-700'
                           }`}
                         >
-                          {isFollowing ? 'Siguiendo' : 'Seguir'}
+                          {isFollowing ? 'Dejar de seguir' : 'Seguir'}
                         </button>
                       )}
                     </div>
